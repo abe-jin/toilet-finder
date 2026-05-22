@@ -268,6 +268,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 - 近い順のトイレ一覧
 - OpenStreetMap / Leaflet の地図表示
 - 現在地マーカーとトイレピン
+- 地図を移動したエリアで再検索
 - Google Mapsの徒歩経路を起動
 - よく使うトイレのお気に入り保存
 - localStorageへのレビュー保存

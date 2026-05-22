@@ -4,12 +4,14 @@ import { AvailabilityConfirmation } from "@/components/AvailabilityConfirmation"
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { formatDistance, googleMapsDirectionsUrl } from "@/lib/distance";
+import { calculateDistanceMeters, formatDistance, googleMapsDirectionsUrl } from "@/lib/distance";
 import type { Coordinates, ToiletWithDistance } from "@/lib/types";
 import L from "leaflet";
-import { Accessibility, Clock3, Navigation, Star } from "lucide-react";
+import { Accessibility, Clock3, Loader2, Navigation, Search, Star } from "lucide-react";
 import Link from "next/link";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import { useMapEvents } from "react-leaflet";
+import { useEffect, useState } from "react";
 
 const userIcon = L.divIcon({
   className: "",
@@ -25,26 +27,61 @@ const toiletIcon = L.divIcon({
   iconAnchor: [17, 17]
 });
 
-function Recenter({ location }: { location: Coordinates }) {
+function Recenter({ center }: { center: Coordinates }) {
   const map = useMap();
-  map.setView([location.lat, location.lng], Math.max(map.getZoom(), 16), { animate: true });
+  useEffect(() => {
+    map.setView([center.lat, center.lng], Math.max(map.getZoom(), 16), { animate: true });
+  }, [center, map]);
+  return null;
+}
+
+function MapMoveWatcher({
+  searchCenter,
+  onMovedChange
+}: {
+  searchCenter: Coordinates;
+  onMovedChange: (moved: boolean, center: Coordinates) => void;
+}) {
+  useMapEvents({
+    moveend(event) {
+      const map = event.target;
+      const center = map.getCenter();
+      const nextCenter = { lat: center.lat, lng: center.lng };
+      onMovedChange(calculateDistanceMeters(searchCenter, nextCenter) > 80, nextCenter);
+    }
+  });
   return null;
 }
 
 type ToiletMapProps = {
   currentLocation: Coordinates;
+  searchCenter: Coordinates;
+  searchMode: "current" | "map-center";
+  searching?: boolean;
   toilets: ToiletWithDistance[];
   selectedToilet?: ToiletWithDistance;
   onSelectToilet: (toilet: ToiletWithDistance) => void;
+  onSearchArea: (center: Coordinates) => void;
 };
 
-export function ToiletMap({ currentLocation, toilets, selectedToilet, onSelectToilet }: ToiletMapProps) {
+export function ToiletMap({
+  currentLocation,
+  searchCenter,
+  searchMode,
+  searching = false,
+  toilets,
+  selectedToilet,
+  onSelectToilet,
+  onSearchArea
+}: ToiletMapProps) {
   const selected = selectedToilet ?? toilets[0];
+  const [mapCenter, setMapCenter] = useState(searchCenter);
+  const [mapMoved, setMapMoved] = useState(false);
 
   return (
     <div className="relative h-[calc(100dvh-92px)] min-h-[640px] overflow-hidden bg-slate-100">
       <MapContainer
-        center={[currentLocation.lat, currentLocation.lng]}
+        center={[searchCenter.lat, searchCenter.lng]}
         zoom={16}
         scrollWheelZoom
         zoomControl={false}
@@ -54,7 +91,14 @@ export function ToiletMap({ currentLocation, toilets, selectedToilet, onSelectTo
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Recenter location={currentLocation} />
+        <Recenter center={searchCenter} />
+        <MapMoveWatcher
+          searchCenter={searchCenter}
+          onMovedChange={(moved, center) => {
+            setMapMoved(moved);
+            setMapCenter(center);
+          }}
+        />
         <Marker position={[currentLocation.lat, currentLocation.lng]} icon={userIcon} />
         {toilets.map((toilet) => (
           <Marker
@@ -67,6 +111,27 @@ export function ToiletMap({ currentLocation, toilets, selectedToilet, onSelectTo
           />
         ))}
       </MapContainer>
+
+      {mapMoved ? (
+        <div className="pointer-events-none absolute inset-x-4 top-[150px] z-20 flex justify-center">
+          <Button
+            type="button"
+            className="pointer-events-auto h-12 rounded-full px-5 shadow-soft"
+            disabled={searching}
+            onClick={() => {
+              setMapMoved(false);
+              onSearchArea(mapCenter);
+            }}
+          >
+            {searching ? <Loader2 size={17} className="animate-spin" /> : <Search size={17} />}
+            このエリアで再検索
+          </Button>
+        </div>
+      ) : null}
+
+      <div className="pointer-events-none absolute right-4 top-4 z-10 rounded-full bg-white/90 px-3 py-2 text-xs font-black text-slate-600 shadow-sm backdrop-blur">
+        {searchMode === "current" ? "現在地周辺を表示中" : "地図の中心周辺を表示中"}
+      </div>
 
       {selected ? (
         <div className="pointer-events-none absolute inset-x-4 bottom-[104px] z-10">

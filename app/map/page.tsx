@@ -15,7 +15,7 @@ import type {
   ToiletFetchDebug,
   ToiletWithDistance
 } from "@/lib/types";
-import { googleMapsDirectionsUrl, withDistance } from "@/lib/distance";
+import { calculateDistanceMeters, googleMapsDirectionsUrl, walkingMinutes, withDistance } from "@/lib/distance";
 import { AlertCircle, LocateFixed } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
@@ -26,6 +26,7 @@ const ToiletMap = dynamic(() => import("@/components/ToiletMap").then((module) =
 });
 
 const MAX_DISPLAY_DISTANCE_METERS = 1500;
+type SearchMode = "current" | "map-center";
 
 function enrichToilets(toilets: ToiletWithDistance[]): ToiletWithDistance[] {
   const reviews = getStoredReviews();
@@ -42,6 +43,9 @@ function enrichToilets(toilets: ToiletWithDistance[]): ToiletWithDistance[] {
 export default function MapPage() {
   const [status, setStatus] = useState<LocationStatus>("loading");
   const [location, setLocation] = useState<Coordinates | null>(null);
+  const [searchCenter, setSearchCenter] = useState<Coordinates | null>(null);
+  const [searchMode, setSearchMode] = useState<SearchMode>("current");
+  const [areaSearching, setAreaSearching] = useState(false);
   const [toilets, setToilets] = useState<Toilet[]>([]);
   const [dataSource, setDataSource] = useState<ToiletDataSource>("generated-fallback");
   const [fetchDebug, setFetchDebug] = useState<ToiletFetchDebug | undefined>();
@@ -50,6 +54,8 @@ export default function MapPage() {
   useEffect(() => {
     const loadFromLocation = async (nextLocation: Coordinates) => {
       setLocation(nextLocation);
+      setSearchCenter(nextLocation);
+      setSearchMode("current");
       cacheLocation(nextLocation);
       const result = await fetchNearbyToilets(nextLocation);
       setToilets(result.toilets);
@@ -84,11 +90,22 @@ export default function MapPage() {
   }, []);
 
   const mappedToilets = useMemo(() => {
-    if (!location) return [];
-    return enrichToilets(withDistance(toilets, location));
-  }, [location, toilets]);
+    const distanceOrigin = location ?? searchCenter;
+    if (!distanceOrigin || !searchCenter) return [];
+    const displayDistanceToilets = withDistance(toilets, distanceOrigin);
+    return enrichToilets(
+      displayDistanceToilets.map((toilet) => {
+        const searchDistanceMeters = calculateDistanceMeters(searchCenter, toilet);
+        return {
+          ...toilet,
+          searchDistanceMeters,
+          walkingMinutes: walkingMinutes(toilet.distanceMeters)
+        };
+      })
+    );
+  }, [location, searchCenter, toilets]);
   const nearbyToilets = useMemo(
-    () => mappedToilets.filter((toilet) => toilet.distanceMeters <= MAX_DISPLAY_DISTANCE_METERS),
+    () => mappedToilets.filter((toilet) => (toilet.searchDistanceMeters ?? toilet.distanceMeters) <= MAX_DISPLAY_DISTANCE_METERS),
     [mappedToilets]
   );
   const excludedOverLimitCount = mappedToilets.length - nearbyToilets.length;
@@ -97,15 +114,36 @@ export default function MapPage() {
     () => nearbyToilets.find((toilet) => toilet.id === selectedId) ?? nearbyToilets[0],
     [nearbyToilets, selectedId]
   );
-  const closestDistance = nearbyToilets[0]?.distanceMeters;
+  const closestSearchDistance = nearbyToilets[0]?.searchDistanceMeters ?? nearbyToilets[0]?.distanceMeters;
+  const areaLabel = searchMode === "current" ? "現在地周辺を表示中" : "地図の中心周辺を表示中";
   const sourceMessage =
     dataSource === "overpass"
-      ? closestDistance !== undefined && closestDistance <= 500
-        ? "すぐ近くの実在トイレを表示中"
-        : closestDistance !== undefined && closestDistance <= 1000
-          ? "近くの実在トイレを表示中"
-          : "少し離れた実在トイレを表示中"
-      : "近くの実在トイレが見つかりませんでした";
+      ? `${areaLabel}・${
+          closestSearchDistance !== undefined && closestSearchDistance <= 500
+            ? "すぐ近くの実在トイレを表示中"
+            : closestSearchDistance !== undefined && closestSearchDistance <= 1000
+              ? "近くの実在トイレを表示中"
+              : "少し離れた実在トイレを表示中"
+        }`
+      : searchMode === "map-center"
+        ? "このエリアに近くの実在トイレが見つかりませんでした"
+        : "近くの実在トイレが見つかりませんでした";
+
+  const searchMapArea = async (center: Coordinates) => {
+    setAreaSearching(true);
+    setSearchCenter(center);
+    setSearchMode("map-center");
+    setSelectedId(undefined);
+    try {
+      const result = await fetchNearbyToilets(center);
+      setToilets(result.source === "generated-fallback" ? [] : result.toilets);
+      setDataSource(result.source);
+      setFetchDebug(result.debug);
+      cacheToilets(result.source === "generated-fallback" ? [] : result.toilets);
+    } finally {
+      setAreaSearching(false);
+    }
+  };
 
   if (status === "loading") {
     return (
@@ -116,7 +154,7 @@ export default function MapPage() {
     );
   }
 
-  if (status === "denied" || status === "error" || !location) {
+  if (status === "denied" || status === "error" || !location || !searchCenter) {
     return (
       <main className="min-h-dvh bg-white p-5 pb-28">
         <EmptyState
@@ -162,6 +200,10 @@ export default function MapPage() {
                 current: {location.lat},{location.lng}
               </p>
             ) : null}
+            <p>
+              search center: {searchCenter.lat},{searchCenter.lng}
+            </p>
+            <p>mode: {searchMode}</p>
             <p>excluded over 1500m: {excludedOverLimitCount}</p>
             <p>fallback: {fetchDebug.fallbackReason ?? "none"}</p>
             {fetchDebug.attempts.map((attempt, index) => (
@@ -173,6 +215,7 @@ export default function MapPage() {
             {nearbyToilets.map((toilet) => (
               <p key={toilet.id}>
                 toilet {toilet.id}: {toilet.lat},{toilet.lng} distance:{toilet.distanceMeters}m maps:
+                searchDistance:{toilet.searchDistanceMeters ?? "-"}m
                 {googleMapsDirectionsUrl(toilet, location)}
               </p>
             ))}
@@ -181,9 +224,13 @@ export default function MapPage() {
       ) : null}
       <ToiletMap
         currentLocation={location}
+        searchCenter={searchCenter}
+        searchMode={searchMode}
+        searching={areaSearching}
         toilets={nearbyToilets}
         selectedToilet={selected}
         onSelectToilet={(toilet) => setSelectedId(toilet.id)}
+        onSearchArea={(center) => void searchMapArea(center)}
       />
       <BottomNav />
     </main>

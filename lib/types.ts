@@ -144,6 +144,7 @@ export type Database = {
 export type ToiletWithDistance = Toilet & {
   distanceMeters: number;
   walkingMinutes: number;
+  searchDistanceMeters?: number;
   reviewRating?: number;
   cleanlinessAverage?: number;
 };
