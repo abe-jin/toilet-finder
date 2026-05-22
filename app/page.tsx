@@ -7,7 +7,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { NearestToiletCard } from "@/components/NearestToiletCard";
 import { ToiletCard } from "@/components/ToiletCard";
 import { Button } from "@/components/ui/Button";
-import { averageCleanliness, averageRating, getReviewsForToilet, getStoredReviews } from "@/lib/reviews";
+import { averageCleanliness, averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
 import { cacheLocation } from "@/lib/location";
 import { cacheToilets, fetchNearbyToilets, sampleToilets } from "@/lib/toilets";
 import type {
@@ -37,7 +37,7 @@ function enrichToilets(toilets: ToiletWithDistance[], version = 0): ToiletWithDi
   void version;
   const reviews = getStoredReviews();
   return toilets.map((toilet) => {
-    const toiletReviews = getReviewsForToilet(toilet.id, reviews);
+    const toiletReviews = getLocalReviews(toilet.id, reviews);
     return {
       ...toilet,
       reviewRating: averageRating(toiletReviews),

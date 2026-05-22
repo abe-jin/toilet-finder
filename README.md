@@ -98,9 +98,9 @@ npm audit
 
 ## Supabase準備メモ
 
-現在のレビュー保存はlocalStorageです。`@supabase/supabase-js` と `lib/supabase.ts` は追加済みですが、`NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` が未設定の場合はSupabaseへ接続せず、今まで通りlocalStorageだけで動きます。
+レビュー保存はSupabaseに対応しています。`NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` が未設定の場合はSupabaseへ接続せず、今まで通りlocalStorageだけで動きます。
 
-将来共有レビューへ移行する場合は、Supabaseで `reviews` テーブルを作成します。
+Supabaseを使う場合は、Supabaseで `reviews` テーブルを作成します。
 
 | column | type | note |
 | --- | --- | --- |
@@ -114,7 +114,20 @@ npm audit
 | `comment` | `text` | nullable |
 | `created_at` | `timestamptz` | default `now()` |
 
-SQL例:
+### Supabase設定手順
+
+1. Supabaseで新しいProjectを作成します。
+2. SQL Editorを開き、下のSQLを実行して `reviews` テーブルとRLSポリシーを作成します。
+3. Project Settings > API から `Project URL` と `anon public key` をコピーします。
+4. VercelのProject Settings > Environment Variablesに以下を設定します。
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+5. Vercelで再デプロイします。
+6. 投稿したレビューが別端末でも表示されるか確認します。
+
+### reviewsテーブル作成SQL
+
+匿名ユーザーはレビューの読み取りと作成のみ可能にしています。更新・削除は許可していません。
 
 ```sql
 create table public.reviews (
@@ -128,9 +141,31 @@ create table public.reviews (
   comment text,
   created_at timestamptz not null default now()
 );
+
+alter table public.reviews enable row level security;
+
+create policy "Anyone can read reviews"
+on public.reviews
+for select
+to anon
+using (true);
+
+create policy "Anyone can create reviews"
+on public.reviews
+for insert
+to anon
+with check (
+  toilet_id <> ''
+  and cleanliness between 1 and 5
+  and crowding between 1 and 5
+  and usability between 1 and 5
+  and facilities between 1 and 5
+  and (rating is null or rating between 1 and 5)
+  and char_length(coalesce(comment, '')) <= 1000
+);
 ```
 
-環境変数は `.env.example` をコピーして設定します。
+ローカルで試す場合は `.env.example` を `.env.local` にコピーして設定します。
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=

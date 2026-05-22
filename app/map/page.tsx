@@ -4,7 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/Button";
-import { averageCleanliness, averageRating, getReviewsForToilet, getStoredReviews } from "@/lib/reviews";
+import { averageCleanliness, averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
 import { cacheLocation, getCachedLocation } from "@/lib/location";
 import { cacheToilets, fetchNearbyToilets } from "@/lib/toilets";
 import type {
@@ -30,7 +30,7 @@ const MAX_DISPLAY_DISTANCE_METERS = 1500;
 function enrichToilets(toilets: ToiletWithDistance[]): ToiletWithDistance[] {
   const reviews = getStoredReviews();
   return toilets.map((toilet) => {
-    const toiletReviews = getReviewsForToilet(toilet.id, reviews);
+    const toiletReviews = getLocalReviews(toilet.id, reviews);
     return {
       ...toilet,
       reviewRating: averageRating(toiletReviews),

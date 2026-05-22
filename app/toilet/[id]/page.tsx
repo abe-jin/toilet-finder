@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatDistance, googleMapsDirectionsUrl, withDistance } from "@/lib/distance";
-import { averageRating, getReviewsForToilet, getStoredReviews } from "@/lib/reviews";
+import { averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
 import { getCachedToilets, getToiletById, sampleToilets } from "@/lib/toilets";
 import type { Coordinates, ToiletWithDistance } from "@/lib/types";
 import {
@@ -67,7 +67,7 @@ export default function ToiletDetailPage() {
     if (!found) return null;
 
     const [withDistanceToilet] = withDistance([found], location ?? fallbackLocation);
-    const toiletReviews = getReviewsForToilet(found.id, getStoredReviews());
+    const toiletReviews = getLocalReviews(found.id, getStoredReviews());
     return {
       ...withDistanceToilet,
       reviewRating: averageRating(toiletReviews)

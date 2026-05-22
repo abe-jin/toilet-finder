@@ -1,9 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { saveReview } from "@/lib/reviews";
+import { createReview, isSupabaseEnabled } from "@/lib/reviews";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Send, Star } from "lucide-react";
+import { AlertCircle, CheckCircle2, HardDrive, Send, Star } from "lucide-react";
 import { useState } from "react";
 
 type ReviewFormProps = {
@@ -28,7 +28,8 @@ export function ReviewForm({ toiletId, onSubmitted }: ReviewFormProps) {
     equipment: 4
   });
   const [comment, setComment] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const setRating = (key: ReviewField, value: number) => {
     setValues((current) => ({ ...current, [key]: value }));
@@ -37,13 +38,26 @@ export function ReviewForm({ toiletId, onSubmitted }: ReviewFormProps) {
   return (
     <form
       className="space-y-4 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        saveReview({ toiletId, comment, ...values });
-        setComment("");
-        setSubmitted(true);
-        window.setTimeout(() => setSubmitted(false), 2200);
-        onSubmitted?.();
+        setSubmitting(true);
+        try {
+          const result = await createReview({ toiletId, comment, ...values });
+          setComment("");
+          setMessage({
+            type: "success",
+            text: result.storage === "supabase" ? "レビューを投稿しました" : "レビューをこの端末に保存しました"
+          });
+          window.setTimeout(() => setMessage(null), 3200);
+          onSubmitted?.();
+        } catch {
+          setMessage({
+            type: "error",
+            text: "レビュー投稿に失敗しました。もう一度お試しください"
+          });
+        } finally {
+          setSubmitting(false);
+        }
       }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -51,13 +65,34 @@ export function ReviewForm({ toiletId, onSubmitted }: ReviewFormProps) {
           <h3 className="text-lg font-black text-ink">レビュー投稿</h3>
           <p className="mt-1 text-sm leading-5 text-muted">星をタップして、使った感覚をすばやく残せます。</p>
         </div>
-        {submitted ? (
-          <div className="flex shrink-0 items-center gap-1 rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">
-            <CheckCircle2 size={14} />
-            保存済み
+        {message ? (
+          <div
+            className={cn(
+              "flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-black",
+              message.type === "success" ? "bg-teal-50 text-teal-700" : "bg-rose-50 text-rose-700"
+            )}
+          >
+            {message.type === "success" ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+            {message.type === "success" ? "保存済み" : "エラー"}
           </div>
         ) : null}
       </div>
+      {!isSupabaseEnabled() ? (
+        <div className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-slate-200/70">
+          <HardDrive size={14} />
+          この端末内に保存されています
+        </div>
+      ) : null}
+      {message ? (
+        <p
+          className={cn(
+            "rounded-2xl px-3 py-2 text-sm font-bold",
+            message.type === "success" ? "bg-teal-50 text-teal-700" : "bg-rose-50 text-rose-700"
+          )}
+        >
+          {message.text}
+        </p>
+      ) : null}
       {fields.map((field) => (
         <div key={field.key} className="rounded-[22px] bg-slate-50 p-3 ring-1 ring-slate-200/60">
           <div className="mb-2 flex items-center justify-between gap-3">
@@ -95,9 +130,9 @@ export function ReviewForm({ toiletId, onSubmitted }: ReviewFormProps) {
         className="w-full resize-none rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
         placeholder="混み具合、清潔感、設備の気づきを書く"
       />
-      <Button className="h-[52px] w-full rounded-[20px]" type="submit">
+      <Button className="h-[52px] w-full rounded-[20px]" type="submit" disabled={submitting}>
         <Send size={17} />
-        投稿する
+        {submitting ? "投稿中" : "投稿する"}
       </Button>
     </form>
   );

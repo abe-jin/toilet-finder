@@ -1,20 +1,46 @@
 "use client";
 
 import { EmptyState } from "@/components/EmptyState";
-import { averageRating, getReviewsForToilet, reviewOverall } from "@/lib/reviews";
+import { averageRating, getReviews, isSupabaseEnabled, reviewOverall } from "@/lib/reviews";
 import type { Review } from "@/lib/types";
-import { MessageSquare, Star } from "lucide-react";
+import { AlertCircle, HardDrive, MessageSquare, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function ReviewList({ toiletId, refreshKey = 0 }: { toiletId: string; refreshKey?: number }) {
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    const load = () => setReviews(getReviewsForToilet(toiletId));
-    load();
+    let active = true;
+    const load = async () => {
+      try {
+        const nextReviews = await getReviews(toiletId);
+        if (!active) return;
+        setReviews(nextReviews);
+        setError(false);
+      } catch {
+        if (!active) return;
+        setReviews([]);
+        setError(true);
+      }
+    };
+    void load();
     window.addEventListener("toilet-reviews-updated", load);
-    return () => window.removeEventListener("toilet-reviews-updated", load);
+    return () => {
+      active = false;
+      window.removeEventListener("toilet-reviews-updated", load);
+    };
   }, [toiletId, refreshKey]);
+
+  if (error) {
+    return (
+      <EmptyState
+        icon={AlertCircle}
+        title="レビューを取得できませんでした"
+        description="通信状況を確認して、もう一度お試しください。"
+      />
+    );
+  }
 
   if (reviews.length === 0) {
     return (
@@ -35,6 +61,12 @@ export function ReviewList({ toiletId, refreshKey = 0 }: { toiletId: string; ref
           {averageRating(reviews)?.toFixed(1)}
         </div>
       </div>
+      {!isSupabaseEnabled() ? (
+        <div className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-slate-200/70">
+          <HardDrive size={14} />
+          この端末内に保存されています
+        </div>
+      ) : null}
       {reviews.map((review) => (
         <article key={review.id} className="rounded-[26px] border border-slate-200/80 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">

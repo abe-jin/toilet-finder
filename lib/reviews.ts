@@ -1,8 +1,20 @@
 import type { Review } from "@/lib/types";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = "toilet-finder-reviews-v1";
 
 export type ReviewDraft = Omit<Review, "id" | "createdAt">;
+
+export type ReviewStorageMode = "supabase" | "local";
+
+export type CreateReviewResult = {
+  review: Review;
+  storage: ReviewStorageMode;
+};
+
+export function isSupabaseEnabled() {
+  return isSupabaseConfigured && Boolean(supabase);
+}
 
 export function getStoredReviews(): Review[] {
   if (typeof window === "undefined") return [];
@@ -17,7 +29,11 @@ export function getStoredReviews(): Review[] {
   }
 }
 
-export function saveReview(draft: ReviewDraft): Review {
+export function getLocalReviews(toiletId?: string, reviews = getStoredReviews()): Review[] {
+  return toiletId ? reviews.filter((review) => review.toiletId === toiletId) : reviews;
+}
+
+export function createLocalReview(draft: ReviewDraft): Review {
   const review: Review = {
     ...draft,
     id: crypto.randomUUID(),
@@ -30,8 +46,43 @@ export function saveReview(draft: ReviewDraft): Review {
   return review;
 }
 
-export function getReviewsForToilet(toiletId: string, reviews = getStoredReviews()): Review[] {
-  return reviews.filter((review) => review.toiletId === toiletId);
+export async function getReviews(toiletId: string): Promise<Review[]> {
+  if (!isSupabaseEnabled() || !supabase) {
+    return getLocalReviews(toiletId);
+  }
+
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("toilet_id", toiletId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map(supabaseRowToReview);
+}
+
+export async function createReview(draft: ReviewDraft): Promise<CreateReviewResult> {
+  if (!isSupabaseEnabled() || !supabase) {
+    return {
+      review: createLocalReview(draft),
+      storage: "local"
+    };
+  }
+
+  const review: Review = {
+    ...draft,
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase.from("reviews").insert(reviewToSupabaseInsert(review)).select("*").single();
+  if (error) throw error;
+
+  window.dispatchEvent(new Event("toilet-reviews-updated"));
+  return {
+    review: data ? supabaseRowToReview(data) : review,
+    storage: "supabase"
+  };
 }
 
 export function reviewOverall(review: Review): number {

@@ -62,8 +62,13 @@ export type Database = {
         Row: SupabaseReviewRow;
         Insert: SupabaseReviewInsert;
         Update: Partial<SupabaseReviewInsert>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };
 
