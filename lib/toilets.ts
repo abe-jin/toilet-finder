@@ -1,4 +1,4 @@
-import type { Coordinates, Toilet } from "@/lib/types";
+import type { Coordinates, Toilet, ToiletFetchResult, ToiletCategory } from "@/lib/types";
 
 export const sampleToilets: Toilet[] = [
   {
@@ -209,15 +209,28 @@ function mapOverpassToToilet(element: OverpassElement): Toilet | null {
 
   const tags = element.tags ?? {};
   const name = tags.name || tags["name:ja"] || "公衆トイレ";
-  const category = tags.operator?.includes("Station") || tags.railway ? "駅" : "公共施設";
+  const category: ToiletCategory =
+    tags.railway || tags.public_transport || tags.station
+      ? "駅"
+      : tags.leisure === "park"
+        ? "公園"
+        : tags.shop || tags.building === "retail"
+          ? "商業施設"
+          : "公共施設";
   const wheelchair = tags.wheelchair === "yes";
   const diaperChanging = tags.changing_table === "yes";
   const open24h = tags.opening_hours === "24/7";
+  const address =
+    tags["addr:full"] ||
+    [tags["addr:province"], tags["addr:city"], tags["addr:ward"], tags["addr:street"], tags["addr:housenumber"]]
+      .filter(Boolean)
+      .join("") ||
+    "現在地周辺のOpenStreetMapデータ";
 
   return {
     id: `osm-${element.type}-${element.id}`,
     name,
-    address: tags["addr:full"] || tags["addr:street"] || "OpenStreetMapから取得",
+    address,
     lat,
     lng,
     openingHours: open24h ? "24時間" : tags.opening_hours || "不明",
@@ -235,7 +248,97 @@ function mapOverpassToToilet(element: OverpassElement): Toilet | null {
   };
 }
 
-export async function fetchNearbyToilets(location: Coordinates, radiusMeters = 1500): Promise<Toilet[]> {
+function offsetLocation(location: Coordinates, northMeters: number, eastMeters: number): Coordinates {
+  const latOffset = northMeters / 111_320;
+  const lngOffset = eastMeters / (111_320 * Math.cos((location.lat * Math.PI) / 180));
+  return {
+    lat: Number((location.lat + latOffset).toFixed(6)),
+    lng: Number((location.lng + lngOffset).toFixed(6))
+  };
+}
+
+export function generateNearbyFallbackToilets(location: Coordinates): Toilet[] {
+  const templates: Array<{
+    id: string;
+    name: string;
+    northMeters: number;
+    eastMeters: number;
+    openingHours: string;
+    rating: number;
+    amenities: Toilet["amenities"];
+  }> = [
+    {
+      id: "north-200",
+      name: "現在地北側 仮設公衆トイレ",
+      northMeters: 200,
+      eastMeters: 0,
+      openingHours: "不明",
+      rating: 3.8,
+      amenities: {
+        genderSeparated: true,
+        multipurpose: true,
+        diaperChanging: false,
+        washlet: false,
+        wheelchair: true,
+        open24h: false,
+        category: "公共施設",
+        free: true
+      }
+    },
+    {
+      id: "east-350",
+      name: "現在地東側 仮データトイレ",
+      northMeters: 0,
+      eastMeters: 350,
+      openingHours: "不明",
+      rating: 3.6,
+      amenities: {
+        genderSeparated: true,
+        multipurpose: false,
+        diaperChanging: true,
+        washlet: false,
+        wheelchair: false,
+        open24h: false,
+        category: "公共施設",
+        free: true
+      }
+    },
+    {
+      id: "southwest-600",
+      name: "現在地南西側 仮データトイレ",
+      northMeters: -425,
+      eastMeters: -425,
+      openingHours: "24時間想定",
+      rating: 3.9,
+      amenities: {
+        genderSeparated: true,
+        multipurpose: true,
+        diaperChanging: true,
+        washlet: true,
+        wheelchair: true,
+        open24h: true,
+        category: "公共施設",
+        free: true
+      }
+    }
+  ];
+
+  return templates.map((template) => {
+    const coordinates = offsetLocation(location, template.northMeters, template.eastMeters);
+    return {
+      id: `generated-${template.id}-${coordinates.lat}-${coordinates.lng}`,
+      name: template.name,
+      address: "現在地周辺の仮データ",
+      lat: coordinates.lat,
+      lng: coordinates.lng,
+      openingHours: template.openingHours,
+      rating: template.rating,
+      amenities: template.amenities
+    };
+  });
+}
+
+export async function fetchNearbyToilets(location: Coordinates, radiusMeters = 1500): Promise<ToiletFetchResult> {
   const query = `
     [out:json][timeout:8];
     (
@@ -266,12 +369,20 @@ export async function fetchNearbyToilets(location: Coordinates, radiusMeters = 1
       .map(mapOverpassToToilet)
       .filter((toilet): toilet is Toilet => Boolean(toilet));
 
-    return toilets.length > 0 ? toilets : sampleToilets;
+    if (toilets.length > 0) {
+      return { toilets, source: "overpass" };
+    }
+
+    return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback" };
   } catch {
-    return sampleToilets;
+    return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback" };
   } finally {
     window.clearTimeout(timeout);
   }
+}
+
+export function getTokyoSampleToilets(): ToiletFetchResult {
+  return { toilets: sampleToilets, source: "tokyo-sample" };
 }
 
 export function getToiletById(id: string, toilets: Toilet[] = sampleToilets): Toilet | undefined {

@@ -43,6 +43,13 @@ export type ToiletWithDistance = Toilet & {
   cleanlinessAverage?: number;
 };
 
+export type ToiletDataSource = "overpass" | "generated-fallback" | "tokyo-sample";
+
+export type ToiletFetchResult = {
+  toilets: Toilet[];
+  source: ToiletDataSource;
+};
+
 export type FilterKey = "multipurpose" | "open24h" | "rating4" | "within500m" | "clean";
 
 export type LocationStatus = "idle" | "loading" | "granted" | "denied" | "error";

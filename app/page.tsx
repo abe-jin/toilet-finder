@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { averageCleanliness, averageRating, getReviewsForToilet, getStoredReviews } from "@/lib/reviews";
 import { cacheLocation } from "@/lib/location";
 import { cacheToilets, fetchNearbyToilets, sampleToilets } from "@/lib/toilets";
-import type { Coordinates, FilterKey, LocationStatus, Toilet, ToiletWithDistance } from "@/lib/types";
+import type { Coordinates, FilterKey, LocationStatus, Toilet, ToiletDataSource, ToiletWithDistance } from "@/lib/types";
 import { withDistance } from "@/lib/distance";
 import { AlertCircle, Crosshair, LocateFixed, MapPin, Search } from "lucide-react";
 import Link from "next/link";
@@ -50,6 +50,7 @@ export default function HomePage() {
   const [status, setStatus] = useState<LocationStatus>("idle");
   const [location, setLocation] = useState<Coordinates | null>(null);
   const [toilets, setToilets] = useState<Toilet[]>(sampleToilets);
+  const [dataSource, setDataSource] = useState<ToiletDataSource>("tokyo-sample");
   const [filters, setFilters] = useState<FilterKey[]>([]);
   const [reviewVersion, setReviewVersion] = useState(0);
 
@@ -74,10 +75,11 @@ export default function HomePage() {
         };
         setLocation(nextLocation);
         cacheLocation(nextLocation);
+        const result = await fetchNearbyToilets(nextLocation);
+        setToilets(result.toilets);
+        setDataSource(result.source);
+        cacheToilets(result.toilets);
         setStatus("granted");
-        const nearby = await fetchNearbyToilets(nextLocation);
-        setToilets(nearby);
-        cacheToilets(nearby);
       },
       () => {
         setStatus("denied");
@@ -90,9 +92,10 @@ export default function HomePage() {
     setStatus("loading");
     setLocation(manualLocation);
     cacheLocation(manualLocation);
-    const nearby = await fetchNearbyToilets(manualLocation);
-    setToilets(nearby);
-    cacheToilets(nearby);
+    const result = await fetchNearbyToilets(manualLocation);
+    setToilets(result.toilets);
+    setDataSource(result.source);
+    cacheToilets(result.toilets);
     setStatus("granted");
   };
 
@@ -152,7 +155,7 @@ export default function HomePage() {
 
       {status === "loading" ? (
         <section className="px-4 pt-8">
-          <LoadingState />
+          <LoadingState label="現在地周辺のトイレを探しています" />
         </section>
       ) : null}
 
@@ -193,6 +196,18 @@ export default function HomePage() {
                 <p className="text-sm text-muted">{filteredToilets.length}件を近い順に表示</p>
               </div>
               <Search size={21} className="text-slate-400" />
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-3 py-2 text-xs font-bold leading-5 text-slate-600 ring-1 ring-slate-200/70">
+              {dataSource === "overpass"
+                ? "周辺のトイレを表示中"
+                : dataSource === "generated-fallback"
+                  ? "周辺データが取得できなかったため、仮データを表示しています"
+                  : "位置情報が未取得のため、東京サンプルを表示しています"}
+              {process.env.NODE_ENV === "development" ? (
+                <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-500 ring-1 ring-slate-200">
+                  source: {dataSource}
+                </span>
+              ) : null}
             </div>
             {filteredToilets.length > 0 ? (
               <div className="space-y-3">
