@@ -9,6 +9,7 @@
     "lint": "eslint . --max-warnings=0"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.106.1",
     "@types/leaflet": "latest",
     "clsx": "latest",
     "leaflet": "latest",

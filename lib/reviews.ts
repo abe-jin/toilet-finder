@@ -35,7 +35,45 @@ export function getReviewsForToilet(toiletId: string, reviews = getStoredReviews
 }
 
 export function reviewOverall(review: Review): number {
-  return (review.cleanliness + (6 - review.crowdLevel) + review.accessibility + review.equipment) / 4;
+  return review.rating ?? (review.cleanliness + (6 - review.crowdLevel) + review.accessibility + review.equipment) / 4;
+}
+
+export function reviewToSupabaseInsert(review: Review) {
+  return {
+    id: review.id,
+    toilet_id: review.toiletId,
+    rating: reviewOverall(review),
+    cleanliness: review.cleanliness,
+    crowding: review.crowdLevel,
+    usability: review.accessibility,
+    facilities: review.equipment,
+    comment: review.comment || null,
+    created_at: review.createdAt
+  };
+}
+
+export function supabaseRowToReview(row: {
+  id: string;
+  toilet_id: string;
+  rating: number | null;
+  cleanliness: number;
+  crowding: number;
+  usability: number;
+  facilities: number;
+  comment: string | null;
+  created_at: string;
+}): Review {
+  return {
+    id: row.id,
+    toiletId: row.toilet_id,
+    rating: row.rating ?? undefined,
+    cleanliness: row.cleanliness,
+    crowdLevel: row.crowding,
+    accessibility: row.usability,
+    equipment: row.facilities,
+    comment: row.comment ?? "",
+    createdAt: row.created_at
+  };
 }
 
 export function averageRating(reviews: Review[]): number | undefined {

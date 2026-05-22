@@ -96,6 +96,47 @@ npm run build
 npm audit
 ```
 
+## Supabase準備メモ
+
+現在のレビュー保存はlocalStorageです。`@supabase/supabase-js` と `lib/supabase.ts` は追加済みですが、`NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` が未設定の場合はSupabaseへ接続せず、今まで通りlocalStorageだけで動きます。
+
+将来共有レビューへ移行する場合は、Supabaseで `reviews` テーブルを作成します。
+
+| column | type | note |
+| --- | --- | --- |
+| `id` | `uuid` | primary key, default `gen_random_uuid()` |
+| `toilet_id` | `text` | OSM id or generated app toilet id |
+| `rating` | `numeric` | overall rating |
+| `cleanliness` | `int2` | 1-5 |
+| `crowding` | `int2` | 1-5 |
+| `usability` | `int2` | 1-5 |
+| `facilities` | `int2` | 1-5 |
+| `comment` | `text` | nullable |
+| `created_at` | `timestamptz` | default `now()` |
+
+SQL例:
+
+```sql
+create table public.reviews (
+  id uuid primary key default gen_random_uuid(),
+  toilet_id text not null,
+  rating numeric,
+  cleanliness int2 not null,
+  crowding int2 not null,
+  usability int2 not null,
+  facilities int2 not null,
+  comment text,
+  created_at timestamptz not null default now()
+);
+```
+
+環境変数は `.env.example` をコピーして設定します。
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
+
 ## 主な機能
 
 - Geolocation APIで現在地を取得
@@ -133,6 +174,7 @@ lib/
   distance.ts
   location.ts
   reviews.ts
+  supabase.ts
   toilets.ts
   types.ts
   utils.ts

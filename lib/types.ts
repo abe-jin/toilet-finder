@@ -29,12 +29,42 @@ export type Toilet = Coordinates & {
 export type Review = {
   id: string;
   toiletId: string;
+  rating?: number;
   cleanliness: number;
   crowdLevel: number;
   accessibility: number;
   equipment: number;
   comment: string;
   createdAt: string;
+};
+
+export type SupabaseReviewRow = {
+  id: string;
+  toilet_id: string;
+  rating: number | null;
+  cleanliness: number;
+  crowding: number;
+  usability: number;
+  facilities: number;
+  comment: string | null;
+  created_at: string;
+};
+
+export type SupabaseReviewInsert = Omit<SupabaseReviewRow, "id" | "created_at"> & {
+  id?: string;
+  created_at?: string;
+};
+
+export type Database = {
+  public: {
+    Tables: {
+      reviews: {
+        Row: SupabaseReviewRow;
+        Insert: SupabaseReviewInsert;
+        Update: Partial<SupabaseReviewInsert>;
+      };
+    };
+  };
 };
 
 export type ToiletWithDistance = Toilet & {
