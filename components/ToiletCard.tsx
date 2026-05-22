@@ -1,3 +1,4 @@
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -16,9 +17,10 @@ export function ToiletCard({ toilet, compact = false, currentLocation }: ToiletC
   const rating = toilet.reviewRating ?? toilet.rating;
 
   return (
-    <Card className={compact ? "p-3" : "p-3.5"}>
+    <Card className={compact ? "relative p-3" : "relative p-3.5"}>
+      <FavoriteButton toilet={toilet} className="absolute right-3 top-3 z-10 shadow-sm" />
       <Link href={`/toilet/${toilet.id}`} className="block">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3 pr-12">
           <div className="min-w-0">
             {toilet.dataKind === "generated" ? (
               <span className="mb-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-600">

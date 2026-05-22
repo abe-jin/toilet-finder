@@ -1,3 +1,4 @@
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatDistance, googleMapsDirectionsUrl } from "@/lib/distance";
@@ -17,9 +18,10 @@ export function NearestToiletCard({ toilet, currentLocation }: { toilet: ToiletW
         </span>
       </div>
       <div className="overflow-hidden rounded-[30px] bg-ink text-white shadow-soft">
-        <div className="p-4 pb-3">
+        <div className="relative p-4 pb-3">
+        <FavoriteButton toilet={toilet} light className="absolute right-4 top-4 z-10" />
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 pr-12">
             <h2 className="line-clamp-2 text-[21px] font-black leading-7">{toilet.name}</h2>
             <p className="mt-2 line-clamp-2 text-sm leading-5 text-white/68">{toilet.address}</p>
           </div>

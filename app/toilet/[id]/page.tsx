@@ -3,6 +3,7 @@
 import { BottomNav } from "@/components/BottomNav";
 import { EmptyState } from "@/components/EmptyState";
 import { AvailabilityConfirmation } from "@/components/AvailabilityConfirmation";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewList } from "@/components/ReviewList";
 import { ToiletReportForm } from "@/components/ToiletReportForm";
@@ -137,6 +138,7 @@ export default function ToiletDetailPage() {
             Google Mapsで経路案内
           </Button>
         </a>
+        <FavoriteButton toilet={toilet} variant="pill" light className="mt-3 h-12 w-full" />
       </header>
 
       <section className="space-y-5 px-4 pt-5">

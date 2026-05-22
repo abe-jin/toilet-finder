@@ -1,6 +1,7 @@
 "use client";
 
 import { AvailabilityConfirmation } from "@/components/AvailabilityConfirmation";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatDistance, googleMapsDirectionsUrl } from "@/lib/distance";
@@ -84,6 +85,7 @@ export function ToiletMap({ currentLocation, toilets, selectedToilet, onSelectTo
                 </p>
                 <p className="text-[10px] font-bold text-white/60">評価</p>
               </div>
+              <FavoriteButton toilet={selected} className="shrink-0" />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-slate-700">
               <div className="flex items-center gap-1.5 rounded-2xl bg-slate-50 px-3 py-2">

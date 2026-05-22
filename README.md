@@ -269,6 +269,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 - OpenStreetMap / Leaflet の地図表示
 - 現在地マーカーとトイレピン
 - Google Mapsの徒歩経路を起動
+- よく使うトイレのお気に入り保存
 - localStorageへのレビュー保存
 - 清潔さ、混雑度、使いやすさ、設備、コメントのレビュー投稿
 - 多目的、24時間、評価4以上、500m以内、清潔さ高めのフィルター
@@ -281,10 +282,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 app/
   page.tsx
   map/page.tsx
+  favorites/page.tsx
   toilet/[id]/page.tsx
 components/
   BottomNav.tsx
   EmptyState.tsx
+  FavoriteButton.tsx
   FilterBar.tsx
   LoadingState.tsx
   NearestToiletCard.tsx
@@ -296,6 +299,7 @@ components/
 lib/
   distance.ts
   confirmations.ts
+  favorites.ts
   location.ts
   reports.ts
   reviews.ts
