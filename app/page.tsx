@@ -10,7 +10,15 @@ import { Button } from "@/components/ui/Button";
 import { averageCleanliness, averageRating, getReviewsForToilet, getStoredReviews } from "@/lib/reviews";
 import { cacheLocation } from "@/lib/location";
 import { cacheToilets, fetchNearbyToilets, sampleToilets } from "@/lib/toilets";
-import type { Coordinates, FilterKey, LocationStatus, Toilet, ToiletDataSource, ToiletWithDistance } from "@/lib/types";
+import type {
+  Coordinates,
+  FilterKey,
+  LocationStatus,
+  Toilet,
+  ToiletDataSource,
+  ToiletFetchDebug,
+  ToiletWithDistance
+} from "@/lib/types";
 import { withDistance } from "@/lib/distance";
 import { AlertCircle, Crosshair, LocateFixed, MapPin, Search } from "lucide-react";
 import Link from "next/link";
@@ -51,6 +59,7 @@ export default function HomePage() {
   const [location, setLocation] = useState<Coordinates | null>(null);
   const [toilets, setToilets] = useState<Toilet[]>(sampleToilets);
   const [dataSource, setDataSource] = useState<ToiletDataSource>("tokyo-sample");
+  const [fetchDebug, setFetchDebug] = useState<ToiletFetchDebug | undefined>();
   const [filters, setFilters] = useState<FilterKey[]>([]);
   const [reviewVersion, setReviewVersion] = useState(0);
 
@@ -78,6 +87,7 @@ export default function HomePage() {
         const result = await fetchNearbyToilets(nextLocation);
         setToilets(result.toilets);
         setDataSource(result.source);
+        setFetchDebug(result.debug);
         cacheToilets(result.toilets);
         setStatus("granted");
       },
@@ -95,6 +105,7 @@ export default function HomePage() {
     const result = await fetchNearbyToilets(manualLocation);
     setToilets(result.toilets);
     setDataSource(result.source);
+    setFetchDebug(result.debug);
     cacheToilets(result.toilets);
     setStatus("granted");
   };
@@ -199,16 +210,34 @@ export default function HomePage() {
             </div>
             <div className="rounded-2xl bg-slate-50 px-3 py-2 text-xs font-bold leading-5 text-slate-600 ring-1 ring-slate-200/70">
               {dataSource === "overpass"
-                ? "周辺のトイレを表示中"
+                ? "周辺の実在トイレを表示中"
                 : dataSource === "generated-fallback"
-                  ? "周辺データが取得できなかったため、仮データを表示しています"
-                  : "位置情報が未取得のため、東京サンプルを表示しています"}
+                  ? "周辺の実データを取得できなかったため、確認用の仮データを表示しています"
+                  : "現在地が取得できなかったため、サンプルデータを表示しています"}
               {process.env.NODE_ENV === "development" ? (
                 <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-500 ring-1 ring-slate-200">
                   source: {dataSource}
                 </span>
               ) : null}
             </div>
+            {process.env.NODE_ENV === "development" && fetchDebug ? (
+              <details className="rounded-2xl bg-slate-950 px-3 py-2 text-xs text-slate-200">
+                <summary className="cursor-pointer font-black text-white">Overpass debug</summary>
+                <div className="mt-2 space-y-1 font-mono leading-5">
+                  <p>empty radii: {fetchDebug.emptyRadii.join(", ") || "none"}</p>
+                  <p>fallback: {fetchDebug.fallbackReason ?? "none"}</p>
+                  {fetchDebug.attempts.map((attempt, index) => (
+                    <p key={`${attempt.endpoint}-${attempt.radiusMeters}-${index}`}>
+                      {attempt.radiusMeters}m {attempt.status ?? "-"} raw:{attempt.rawElementCount ?? "-"} mapped:
+                      {attempt.mappedToiletCount ?? "-"} {attempt.error ? `error:${attempt.error}` : ""}
+                    </p>
+                  ))}
+                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-xl bg-black/30 p-2">
+                    {fetchDebug.query}
+                  </pre>
+                </div>
+              </details>
+            ) : null}
             {filteredToilets.length > 0 ? (
               <div className="space-y-3">
                 {filteredToilets.map((toilet) => (

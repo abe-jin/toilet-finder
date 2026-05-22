@@ -12,7 +12,9 @@ export function NearestToiletCard({ toilet }: { toilet: ToiletWithDistance }) {
     <section className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 px-4 pb-4 pt-3 backdrop-blur-xl">
       <div className="mb-2 flex items-center justify-between px-1">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-accent">一番近いトイレ</p>
-        <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">最短</span>
+        <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">
+          {toilet.dataKind === "generated" ? "確認用データ" : toilet.dataKind === "candidate" ? "トイレあり施設" : "最短"}
+        </span>
       </div>
       <div className="overflow-hidden rounded-[30px] bg-ink text-white shadow-soft">
         <div className="p-4 pb-3">

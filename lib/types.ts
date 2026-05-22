@@ -22,6 +22,7 @@ export type Toilet = Coordinates & {
   address: string;
   openingHours: string;
   rating: number;
+  dataKind?: "real" | "candidate" | "generated" | "sample";
   amenities: ToiletAmenities;
 };
 
@@ -45,9 +46,26 @@ export type ToiletWithDistance = Toilet & {
 
 export type ToiletDataSource = "overpass" | "generated-fallback" | "tokyo-sample";
 
+export type OverpassAttemptDebug = {
+  endpoint: string;
+  radiusMeters: number;
+  status?: number;
+  rawElementCount?: number;
+  mappedToiletCount?: number;
+  error?: string;
+};
+
+export type ToiletFetchDebug = {
+  query: string;
+  attempts: OverpassAttemptDebug[];
+  emptyRadii: number[];
+  fallbackReason?: string;
+};
+
 export type ToiletFetchResult = {
   toilets: Toilet[];
   source: ToiletDataSource;
+  debug?: ToiletFetchDebug;
 };
 
 export type FilterKey = "multipurpose" | "open24h" | "rating4" | "within500m" | "clean";

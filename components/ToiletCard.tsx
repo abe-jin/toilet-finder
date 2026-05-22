@@ -19,6 +19,15 @@ export function ToiletCard({ toilet, compact = false }: ToiletCardProps) {
       <Link href={`/toilet/${toilet.id}`} className="block">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
+            {toilet.dataKind === "generated" ? (
+              <span className="mb-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-600">
+                確認用データ
+              </span>
+            ) : toilet.dataKind === "candidate" ? (
+              <span className="mb-1 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-black text-blue-700">
+                トイレあり施設
+              </span>
+            ) : null}
             <p className="line-clamp-2 text-[15px] font-black leading-6 text-ink">{toilet.name}</p>
             <p className="mt-1 flex items-center gap-1 text-xs text-muted">
               <MapPin size={13} className="shrink-0" />

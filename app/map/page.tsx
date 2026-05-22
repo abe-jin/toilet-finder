@@ -7,7 +7,14 @@ import { Button } from "@/components/ui/Button";
 import { averageCleanliness, averageRating, getReviewsForToilet, getStoredReviews } from "@/lib/reviews";
 import { cacheLocation, getCachedLocation } from "@/lib/location";
 import { cacheToilets, fetchNearbyToilets } from "@/lib/toilets";
-import type { Coordinates, LocationStatus, Toilet, ToiletDataSource, ToiletWithDistance } from "@/lib/types";
+import type {
+  Coordinates,
+  LocationStatus,
+  Toilet,
+  ToiletDataSource,
+  ToiletFetchDebug,
+  ToiletWithDistance
+} from "@/lib/types";
 import { withDistance } from "@/lib/distance";
 import { AlertCircle, LocateFixed } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -35,6 +42,7 @@ export default function MapPage() {
   const [location, setLocation] = useState<Coordinates | null>(null);
   const [toilets, setToilets] = useState<Toilet[]>([]);
   const [dataSource, setDataSource] = useState<ToiletDataSource>("generated-fallback");
+  const [fetchDebug, setFetchDebug] = useState<ToiletFetchDebug | undefined>();
   const [selectedId, setSelectedId] = useState<string | undefined>();
 
   useEffect(() => {
@@ -44,6 +52,7 @@ export default function MapPage() {
       const result = await fetchNearbyToilets(nextLocation);
       setToilets(result.toilets);
       setDataSource(result.source);
+      setFetchDebug(result.debug);
       cacheToilets(result.toilets);
       setStatus("granted");
     };
@@ -118,14 +127,29 @@ export default function MapPage() {
       </div>
       <div className="absolute left-4 right-4 top-[92px] z-20 rounded-2xl bg-white/88 px-3 py-2 text-xs font-bold text-slate-600 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
         {dataSource === "overpass"
-          ? "周辺のトイレを表示中"
-          : "周辺データが取得できなかったため、仮データを表示しています"}
+          ? "周辺の実在トイレを表示中"
+          : "周辺の実データを取得できなかったため、確認用の仮データを表示しています"}
         {process.env.NODE_ENV === "development" ? (
           <span className="ml-2 rounded-full bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500 ring-1 ring-slate-200">
             source: {dataSource}
           </span>
         ) : null}
       </div>
+      {process.env.NODE_ENV === "development" && fetchDebug ? (
+        <details className="absolute left-4 right-4 top-[146px] z-20 rounded-2xl bg-slate-950/90 px-3 py-2 text-xs text-slate-200 shadow-soft backdrop-blur">
+          <summary className="cursor-pointer font-black text-white">Overpass debug</summary>
+          <div className="mt-2 space-y-1 font-mono leading-5">
+            <p>empty radii: {fetchDebug.emptyRadii.join(", ") || "none"}</p>
+            <p>fallback: {fetchDebug.fallbackReason ?? "none"}</p>
+            {fetchDebug.attempts.map((attempt, index) => (
+              <p key={`${attempt.endpoint}-${attempt.radiusMeters}-${index}`}>
+                {attempt.radiusMeters}m {attempt.status ?? "-"} raw:{attempt.rawElementCount ?? "-"} mapped:
+                {attempt.mappedToiletCount ?? "-"} {attempt.error ? `error:${attempt.error}` : ""}
+              </p>
+            ))}
+          </div>
+        </details>
+      ) : null}
       <ToiletMap
         currentLocation={location}
         toilets={mappedToilets}

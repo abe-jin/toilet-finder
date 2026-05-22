@@ -1,4 +1,4 @@
-import type { Coordinates, Toilet, ToiletFetchResult, ToiletCategory } from "@/lib/types";
+import type { Coordinates, Toilet, ToiletFetchResult, ToiletCategory, ToiletFetchDebug } from "@/lib/types";
 
 export const sampleToilets: Toilet[] = [
   {
@@ -202,13 +202,67 @@ type OverpassElement = {
   tags?: Record<string, string>;
 };
 
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter"
+];
+
+const SEARCH_RADII_METERS = [1500, 3000, 5000];
+
+const PUBLIC_FACILITY_AMENITIES = new Set([
+  "public_building",
+  "townhall",
+  "community_centre",
+  "library",
+  "hospital",
+  "clinic",
+  "school",
+  "university",
+  "college",
+  "bus_station",
+  "train_station",
+  "ferry_terminal",
+  "marketplace",
+  "parking"
+]);
+
+function buildOverpassQuery(location: Coordinates, radiusMeters: number): string {
+  return `
+    [out:json][timeout:12];
+    (
+      node["amenity"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
+      way["amenity"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
+      relation["amenity"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
+
+      node["toilets"="yes"](around:${radiusMeters},${location.lat},${location.lng});
+      way["toilets"="yes"](around:${radiusMeters},${location.lat},${location.lng});
+      relation["toilets"="yes"](around:${radiusMeters},${location.lat},${location.lng});
+
+      node["wheelchair"="yes"]["amenity"~"^(public_building|townhall|community_centre|library|hospital|clinic|school|university|college|bus_station|train_station|ferry_terminal|marketplace|parking)$"](around:${radiusMeters},${location.lat},${location.lng});
+      way["wheelchair"="yes"]["amenity"~"^(public_building|townhall|community_centre|library|hospital|clinic|school|university|college|bus_station|train_station|ferry_terminal|marketplace|parking)$"](around:${radiusMeters},${location.lat},${location.lng});
+      relation["wheelchair"="yes"]["amenity"~"^(public_building|townhall|community_centre|library|hospital|clinic|school|university|college|bus_station|train_station|ferry_terminal|marketplace|parking)$"](around:${radiusMeters},${location.lat},${location.lng});
+    );
+    out center tags;
+  `;
+}
+
 function mapOverpassToToilet(element: OverpassElement): Toilet | null {
   const lat = element.lat ?? element.center?.lat;
   const lng = element.lon ?? element.center?.lon;
   if (!lat || !lng) return null;
 
   const tags = element.tags ?? {};
-  const name = tags.name || tags["name:ja"] || "公衆トイレ";
+  const isDedicatedToilet = tags.amenity === "toilets";
+  const isToiletFacility = tags.toilets === "yes";
+  const isPublicWheelchairFacility =
+    tags.wheelchair === "yes" && Boolean(tags.amenity && PUBLIC_FACILITY_AMENITIES.has(tags.amenity));
+
+  if (!isDedicatedToilet && !isToiletFacility && !isPublicWheelchairFacility) return null;
+
+  const name =
+    tags.name ||
+    tags["name:ja"] ||
+    (isDedicatedToilet ? "公衆トイレ" : isToiletFacility ? "トイレあり施設" : "車椅子対応の公共施設");
   const category: ToiletCategory =
     tags.railway || tags.public_transport || tags.station
       ? "駅"
@@ -234,7 +288,8 @@ function mapOverpassToToilet(element: OverpassElement): Toilet | null {
     lat,
     lng,
     openingHours: open24h ? "24時間" : tags.opening_hours || "不明",
-    rating: 3.8,
+    rating: isDedicatedToilet ? 3.8 : 3.6,
+    dataKind: isDedicatedToilet ? "real" : "candidate",
     amenities: {
       genderSeparated: tags.unisex !== "yes",
       multipurpose: wheelchair || tags.toilets === "wheelchair",
@@ -333,56 +388,84 @@ export function generateNearbyFallbackToilets(location: Coordinates): Toilet[] {
       lng: coordinates.lng,
       openingHours: template.openingHours,
       rating: template.rating,
+      dataKind: "generated",
       amenities: template.amenities
     };
   });
 }
 
-export async function fetchNearbyToilets(location: Coordinates, radiusMeters = 1500): Promise<ToiletFetchResult> {
-  const query = `
-    [out:json][timeout:8];
-    (
-      node["amenity"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
-      way["amenity"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
-      relation["amenity"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
-    );
-    out center tags;
-  `;
+export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletFetchResult> {
+  const debug: ToiletFetchDebug = {
+    query: buildOverpassQuery(location, SEARCH_RADII_METERS[0]),
+    attempts: [],
+    emptyRadii: []
+  };
 
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 9000);
+  for (const radiusMeters of SEARCH_RADII_METERS) {
+    const query = buildOverpassQuery(location, radiusMeters);
+    debug.query = query;
 
-  try {
-    const response = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      body: query,
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "text/plain;charset=UTF-8"
+    for (const endpoint of OVERPASS_ENDPOINTS) {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 12_000);
+
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          body: query,
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "text/plain;charset=UTF-8"
+          }
+        });
+
+        const attempt = {
+          endpoint,
+          radiusMeters,
+          status: response.status
+        };
+
+        if (!response.ok) {
+          debug.attempts.push({ ...attempt, error: `HTTP ${response.status}` });
+          continue;
+        }
+
+        const data = (await response.json()) as { elements?: OverpassElement[] };
+        const rawElements = data.elements ?? [];
+        const toilets = rawElements.map(mapOverpassToToilet).filter((toilet): toilet is Toilet => Boolean(toilet));
+
+        debug.attempts.push({
+          ...attempt,
+          rawElementCount: rawElements.length,
+          mappedToiletCount: toilets.length
+        });
+
+        if (toilets.length > 0) {
+          return { toilets, source: "overpass", debug };
+        }
+      } catch (error) {
+        debug.attempts.push({
+          endpoint,
+          radiusMeters,
+          error: error instanceof Error ? error.message : "Unknown Overpass error"
+        });
+      } finally {
+        window.clearTimeout(timeout);
       }
-    });
-
-    if (!response.ok) throw new Error("Overpass API request failed");
-
-    const data = (await response.json()) as { elements?: OverpassElement[] };
-    const toilets = (data.elements ?? [])
-      .map(mapOverpassToToilet)
-      .filter((toilet): toilet is Toilet => Boolean(toilet));
-
-    if (toilets.length > 0) {
-      return { toilets, source: "overpass" };
     }
 
-    return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback" };
-  } catch {
-    return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback" };
-  } finally {
-    window.clearTimeout(timeout);
+    debug.emptyRadii.push(radiusMeters);
   }
+
+  debug.fallbackReason = "Overpass API returned no usable toilet candidates for 1500m, 3000m, and 5000m.";
+  return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback", debug };
 }
 
 export function getTokyoSampleToilets(): ToiletFetchResult {
-  return { toilets: sampleToilets, source: "tokyo-sample" };
+  return {
+    toilets: sampleToilets.map((toilet) => ({ ...toilet, dataKind: "sample" })),
+    source: "tokyo-sample"
+  };
 }
 
 export function getToiletById(id: string, toilets: Toilet[] = sampleToilets): Toilet | undefined {
