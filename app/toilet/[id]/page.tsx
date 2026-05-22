@@ -161,10 +161,10 @@ export default function ToiletDetailPage() {
         </Card>
 
         <AvailabilityConfirmation toiletId={toilet.id} />
-        <ToiletReportForm toiletId={toilet.id} />
 
         <ReviewList toiletId={toilet.id} refreshKey={refreshKey} />
         <ReviewForm toiletId={toilet.id} onSubmitted={() => setRefreshKey((value) => value + 1)} />
+        <ToiletReportForm toiletId={toilet.id} />
       </section>
       <BottomNav />
     </main>
