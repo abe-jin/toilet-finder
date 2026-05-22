@@ -98,9 +98,9 @@ npm audit
 
 ## Supabase準備メモ
 
-レビュー保存と「使えました / 使えなかった」の利用確認はSupabaseに対応しています。`NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` が未設定の場合はSupabaseへ接続せず、今まで通りlocalStorageだけで動きます。
+レビュー保存、「使えました / 使えなかった」の利用確認、トイレ情報の通報はSupabaseに対応しています。`NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` が未設定の場合はSupabaseへ接続せず、今まで通りlocalStorageだけで動きます。
 
-Supabaseを使う場合は、Supabaseで `reviews` と `confirmations` テーブルを作成します。
+Supabaseを使う場合は、Supabaseで `reviews`, `confirmations`, `reports` テーブルを作成します。
 
 | column | type | note |
 | --- | --- | --- |
@@ -123,10 +123,20 @@ Supabaseを使う場合は、Supabaseで `reviews` と `confirmations` テーブ
 | `status` | `text` | `available` or `unavailable` |
 | `created_at` | `timestamptz` | default `now()` |
 
+`reports` は「場所が違う」「閉鎖されている」「情報が古い」などのデータ品質改善用の通報テーブルです。
+
+| column | type | note |
+| --- | --- | --- |
+| `id` | `uuid` | primary key, default `gen_random_uuid()` |
+| `toilet_id` | `text` | OSM id or generated app toilet id |
+| `reason` | `text` | report reason |
+| `comment` | `text` | nullable |
+| `created_at` | `timestamptz` | default `now()` |
+
 ### Supabase設定手順
 
 1. Supabaseで新しいProjectを作成します。
-2. SQL Editorを開き、下のSQLを実行して `reviews`, `confirmations` テーブルとRLSポリシーを作成します。
+2. SQL Editorを開き、下のSQLを実行して `reviews`, `confirmations`, `reports` テーブルとRLSポリシーを作成します。
 3. Project Settings > API から `Project URL` と `anon public key` をコピーします。
 4. VercelのProject Settings > Environment Variablesに以下を設定します。
    - `NEXT_PUBLIC_SUPABASE_URL`
@@ -134,9 +144,9 @@ Supabaseを使う場合は、Supabaseで `reviews` と `confirmations` テーブ
 5. Vercelで再デプロイします。
 6. 投稿したレビューが別端末でも表示されるか確認します。
 
-### reviews / confirmations テーブル作成SQL
+### reviews / confirmations / reports テーブル作成SQL
 
-匿名ユーザーはレビューと利用確認の読み取り・作成のみ可能にしています。更新・削除は許可していません。連打防止はアプリ側のlocalStorageで簡易的に行っていますが、本格運用ではIPや認証、Edge Functionなどで追加制御してください。
+匿名ユーザーはレビュー、利用確認、通報の読み取り・作成のみ可能にしています。更新・削除は許可していません。連打防止はアプリ側のlocalStorageで簡易的に行っていますが、本格運用ではIPや認証、Edge Functionなどで追加制御してください。
 
 ```sql
 create table public.reviews (
@@ -197,6 +207,49 @@ with check (
   toilet_id <> ''
   and status in ('available', 'unavailable')
 );
+
+create table public.reports (
+  id uuid primary key default gen_random_uuid(),
+  toilet_id text not null,
+  reason text not null,
+  comment text,
+  created_at timestamptz not null default now(),
+  constraint reports_reason_check check (
+    reason in (
+      'wrong_location',
+      'closed',
+      'unavailable',
+      'wrong_facilities',
+      'inappropriate_review',
+      'other'
+    )
+  )
+);
+
+alter table public.reports enable row level security;
+
+create policy "Anyone can read reports"
+on public.reports
+for select
+to anon
+using (true);
+
+create policy "Anyone can create reports"
+on public.reports
+for insert
+to anon
+with check (
+  toilet_id <> ''
+  and reason in (
+    'wrong_location',
+    'closed',
+    'unavailable',
+    'wrong_facilities',
+    'inappropriate_review',
+    'other'
+  )
+  and char_length(coalesce(comment, '')) <= 1000
+);
 ```
 
 ローカルで試す場合は `.env.example` を `.env.local` にコピーして設定します。
@@ -239,10 +292,12 @@ components/
   ReviewList.tsx
   ToiletCard.tsx
   ToiletMap.tsx
+  ToiletReportForm.tsx
 lib/
   distance.ts
   confirmations.ts
   location.ts
+  reports.ts
   reviews.ts
   supabase.ts
   toilets.ts

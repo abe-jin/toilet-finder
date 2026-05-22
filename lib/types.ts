@@ -54,6 +54,22 @@ export type ToiletConfirmationSummary = {
   hasUnavailableReport: boolean;
 };
 
+export type ToiletReportReason =
+  | "wrong_location"
+  | "closed"
+  | "unavailable"
+  | "wrong_facilities"
+  | "inappropriate_review"
+  | "other";
+
+export type ToiletReport = {
+  id: string;
+  toiletId: string;
+  reason: ToiletReportReason;
+  comment: string;
+  createdAt: string;
+};
+
 export type SupabaseReviewRow = {
   id: string;
   toilet_id: string;
@@ -83,6 +99,19 @@ export type SupabaseConfirmationInsert = Omit<SupabaseConfirmationRow, "id" | "c
   created_at?: string;
 };
 
+export type SupabaseReportRow = {
+  id: string;
+  toilet_id: string;
+  reason: ToiletReportReason;
+  comment: string | null;
+  created_at: string;
+};
+
+export type SupabaseReportInsert = Omit<SupabaseReportRow, "id" | "created_at"> & {
+  id?: string;
+  created_at?: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -96,6 +125,12 @@ export type Database = {
         Row: SupabaseConfirmationRow;
         Insert: SupabaseConfirmationInsert;
         Update: Partial<SupabaseConfirmationInsert>;
+        Relationships: [];
+      };
+      reports: {
+        Row: SupabaseReportRow;
+        Insert: SupabaseReportInsert;
+        Update: Partial<SupabaseReportInsert>;
         Relationships: [];
       };
     };

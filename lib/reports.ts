@@ -1,0 +1,147 @@
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import type { ToiletReport, ToiletReportReason } from "@/lib/types";
+
+const STORAGE_KEY = "toilet-finder-reports-v1";
+const COOLDOWN_STORAGE_KEY = "toilet-finder-report-cooldowns-v1";
+const COOLDOWN_MS = 30 * 60 * 1000;
+
+export type ReportDraft = {
+  toiletId: string;
+  reason: ToiletReportReason;
+  comment: string;
+};
+
+export type ReportStorageMode = "supabase" | "local";
+
+export type CreateReportResult = {
+  report: ToiletReport;
+  storage: ReportStorageMode;
+};
+
+type CooldownMap = Record<string, number>;
+
+export function isSupabaseEnabled() {
+  return isSupabaseConfigured && Boolean(supabase);
+}
+
+export function getLocalReports(toiletId?: string): ToiletReport[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as ToiletReport[];
+    const reports = Array.isArray(parsed) ? parsed : [];
+    return toiletId ? reports.filter((report) => report.toiletId === toiletId) : reports;
+  } catch {
+    return [];
+  }
+}
+
+export function createLocalReport(draft: ReportDraft): ToiletReport {
+  const report: ToiletReport = {
+    ...draft,
+    comment: draft.comment.trim(),
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString()
+  };
+
+  const reports = getLocalReports();
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify([report, ...reports]));
+  markReportSubmitted(draft.toiletId);
+  window.dispatchEvent(new Event("toilet-reports-updated"));
+  return report;
+}
+
+export async function createReport(draft: ReportDraft): Promise<CreateReportResult> {
+  if (isReportCoolingDown(draft.toiletId)) {
+    throw new Error("cooldown");
+  }
+
+  if (!isSupabaseEnabled() || !supabase) {
+    return {
+      report: createLocalReport(draft),
+      storage: "local"
+    };
+  }
+
+  const report: ToiletReport = {
+    ...draft,
+    comment: draft.comment.trim(),
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase.from("reports").insert(reportToSupabaseInsert(report)).select("*").single();
+  if (error) throw error;
+
+  markReportSubmitted(draft.toiletId);
+  window.dispatchEvent(new Event("toilet-reports-updated"));
+  return {
+    report: data ? supabaseRowToReport(data) : report,
+    storage: "supabase"
+  };
+}
+
+export function isReportCoolingDown(toiletId: string) {
+  if (typeof window === "undefined") return false;
+  const lastSubmittedAt = getCooldowns()[toiletId];
+  return Boolean(lastSubmittedAt && Date.now() - lastSubmittedAt < COOLDOWN_MS);
+}
+
+export function getReportCooldownSeconds(toiletId: string) {
+  if (typeof window === "undefined") return 0;
+  const lastSubmittedAt = getCooldowns()[toiletId];
+  if (!lastSubmittedAt) return 0;
+  return Math.max(0, Math.ceil((COOLDOWN_MS - (Date.now() - lastSubmittedAt)) / 1000));
+}
+
+function markReportSubmitted(toiletId: string) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    COOLDOWN_STORAGE_KEY,
+    JSON.stringify({
+      ...getCooldowns(),
+      [toiletId]: Date.now()
+    })
+  );
+}
+
+function getCooldowns(): CooldownMap {
+  if (typeof window === "undefined") return {};
+
+  try {
+    const raw = window.localStorage.getItem(COOLDOWN_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as CooldownMap;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function reportToSupabaseInsert(report: ToiletReport) {
+  return {
+    id: report.id,
+    toilet_id: report.toiletId,
+    reason: report.reason,
+    comment: report.comment || null,
+    created_at: report.createdAt
+  };
+}
+
+function supabaseRowToReport(row: {
+  id: string;
+  toilet_id: string;
+  reason: ToiletReportReason;
+  comment: string | null;
+  created_at: string;
+}): ToiletReport {
+  return {
+    id: row.id,
+    toiletId: row.toilet_id,
+    reason: row.reason,
+    comment: row.comment ?? "",
+    createdAt: row.created_at
+  };
+}

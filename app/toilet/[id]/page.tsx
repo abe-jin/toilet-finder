@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { AvailabilityConfirmation } from "@/components/AvailabilityConfirmation";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewList } from "@/components/ReviewList";
+import { ToiletReportForm } from "@/components/ToiletReportForm";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -158,6 +159,7 @@ export default function ToiletDetailPage() {
         </Card>
 
         <AvailabilityConfirmation toiletId={toilet.id} />
+        <ToiletReportForm toiletId={toilet.id} />
 
         <ReviewList toiletId={toilet.id} refreshKey={refreshKey} />
         <ReviewForm toiletId={toilet.id} onSubmitted={() => setRefreshKey((value) => value + 1)} />
