@@ -54,9 +54,10 @@ function MapMoveWatcher({
 }
 
 type ToiletMapProps = {
-  currentLocation: Coordinates;
+  currentLocation?: Coordinates | null;
   searchCenter: Coordinates;
-  searchMode: "current" | "map-center";
+  searchMode: "current" | "map-center" | "place";
+  searchLabel?: string | null;
   searching?: boolean;
   toilets: ToiletWithDistance[];
   selectedToilet?: ToiletWithDistance;
@@ -68,6 +69,7 @@ export function ToiletMap({
   currentLocation,
   searchCenter,
   searchMode,
+  searchLabel,
   searching = false,
   toilets,
   selectedToilet,
@@ -99,7 +101,7 @@ export function ToiletMap({
             setMapCenter(center);
           }}
         />
-        <Marker position={[currentLocation.lat, currentLocation.lng]} icon={userIcon} />
+        {currentLocation ? <Marker position={[currentLocation.lat, currentLocation.lng]} icon={userIcon} /> : null}
         {toilets.map((toilet) => (
           <Marker
             key={toilet.id}
@@ -130,7 +132,7 @@ export function ToiletMap({
       ) : null}
 
       <div className="pointer-events-none absolute right-4 top-4 z-10 rounded-full bg-white/90 px-3 py-2 text-xs font-black text-slate-600 shadow-sm backdrop-blur">
-        {searchMode === "current" ? "現在地周辺を表示中" : "地図の中心周辺を表示中"}
+        {searchMode === "current" ? "現在地周辺を表示中" : searchMode === "place" && searchLabel ? `${searchLabel}周辺を表示中` : "地図の中心周辺を表示中"}
       </div>
 
       {selected ? (

@@ -262,6 +262,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ## 主な機能
 
 - Geolocation APIで現在地を取得
+- 駅名・地名検索をNominatimで緯度経度に変換
 - Haversine formulaで距離を計算
 - 徒歩時間を `80m = 約1分` で概算
 - 一番近いトイレを上部に大きく表示
@@ -269,6 +270,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 - OpenStreetMap / Leaflet の地図表示
 - 現在地マーカーとトイレピン
 - 地図を移動したエリアで再検索
+- 検索履歴を直近5件までlocalStorageに保存
 - Google Mapsの徒歩経路を起動
 - よく使うトイレのお気に入り保存
 - localStorageへのレビュー保存
@@ -290,6 +292,7 @@ components/
   EmptyState.tsx
   FavoriteButton.tsx
   FilterBar.tsx
+  LocationSearch.tsx
   LoadingState.tsx
   NearestToiletCard.tsx
   ReviewForm.tsx
@@ -301,6 +304,7 @@ lib/
   distance.ts
   confirmations.ts
   favorites.ts
+  geocoding.ts
   location.ts
   reports.ts
   reviews.ts

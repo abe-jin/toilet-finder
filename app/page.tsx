@@ -4,10 +4,12 @@ import { BottomNav } from "@/components/BottomNav";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterBar } from "@/components/FilterBar";
 import { LoadingState } from "@/components/LoadingState";
+import { LocationSearch } from "@/components/LocationSearch";
 import { NearestToiletCard } from "@/components/NearestToiletCard";
 import { ToiletCard } from "@/components/ToiletCard";
 import { Button } from "@/components/ui/Button";
 import { averageCleanliness, averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
+import type { GeocodingResult } from "@/lib/geocoding";
 import { cacheLocation } from "@/lib/location";
 import { cacheToilets, fetchNearbyToilets, sampleToilets } from "@/lib/toilets";
 import type {
@@ -67,6 +69,7 @@ export default function HomePage() {
   const [fetchDebug, setFetchDebug] = useState<ToiletFetchDebug | undefined>();
   const [filters, setFilters] = useState<FilterKey[]>(["within1500m"]);
   const [reviewVersion, setReviewVersion] = useState(0);
+  const [searchLabel, setSearchLabel] = useState<string | null>(null);
 
   useEffect(() => {
     const onReview = () => setReviewVersion((value) => value + 1);
@@ -81,6 +84,7 @@ export default function HomePage() {
     }
 
     setStatus("loading");
+    setSearchLabel(null);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const nextLocation = {
@@ -105,6 +109,7 @@ export default function HomePage() {
 
   const handleManualLocation = async (manualLocation: Coordinates) => {
     setStatus("loading");
+    setSearchLabel(null);
     setLocation(manualLocation);
     cacheLocation(manualLocation);
     const result = await fetchNearbyToilets(manualLocation);
@@ -112,6 +117,19 @@ export default function HomePage() {
     setDataSource(result.source);
     setFetchDebug(result.debug);
     cacheToilets(result.toilets);
+    setStatus("granted");
+  };
+
+  const handleLocationSearch = async (result: GeocodingResult) => {
+    setStatus("loading");
+    setSearchLabel(result.label);
+    const nextLocation = { lat: result.lat, lng: result.lng };
+    setLocation(nextLocation);
+    const toiletResult = await fetchNearbyToilets(nextLocation);
+    setToilets(toiletResult.toilets);
+    setDataSource(toiletResult.source);
+    setFetchDebug(toiletResult.debug);
+    cacheToilets(toiletResult.toilets);
     setStatus("granted");
   };
 
@@ -130,11 +148,13 @@ export default function HomePage() {
   const closestDistance = nearbyToilets[0]?.distanceMeters;
   const sourceMessage =
     dataSource === "overpass"
-      ? closestDistance !== undefined && closestDistance <= 500
-        ? "すぐ近くの実在トイレを表示中"
-        : closestDistance !== undefined && closestDistance <= 1000
-          ? "近くの実在トイレを表示中"
-          : "少し離れた実在トイレを表示中"
+      ? searchLabel
+        ? `${searchLabel}周辺のトイレを表示中`
+        : closestDistance !== undefined && closestDistance <= 500
+          ? "すぐ近くの実在トイレを表示中"
+          : closestDistance !== undefined && closestDistance <= 1000
+            ? "近くの実在トイレを表示中"
+            : "少し離れた実在トイレを表示中"
       : dataSource === "generated-fallback"
         ? "近くの実在トイレが見つかりませんでした"
         : "現在地が取得できなかったため、サンプルデータを表示しています";
@@ -154,6 +174,9 @@ export default function HomePage() {
           >
             <MapPin size={22} />
           </Link>
+        </div>
+        <div className="mt-4">
+          <LocationSearch onResolved={handleLocationSearch} />
         </div>
       </header>
 
@@ -187,7 +210,7 @@ export default function HomePage() {
 
       {status === "loading" ? (
         <section className="px-4 pt-8">
-          <LoadingState label="現在地周辺のトイレを探しています" />
+          <LoadingState label={searchLabel ? `${searchLabel}周辺のトイレを探しています` : "現在地周辺のトイレを探しています"} />
         </section>
       ) : null}
 
