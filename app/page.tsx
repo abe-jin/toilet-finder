@@ -22,7 +22,7 @@ import type {
   ToiletWithDistance
 } from "@/lib/types";
 import { googleMapsDirectionsUrl, withDistance } from "@/lib/distance";
-import { AlertCircle, Crosshair, LocateFixed, MapPin, Search } from "lucide-react";
+import { AlertCircle, Crosshair, LocateFixed, MapPin, Navigation, Search, ShieldCheck, Toilet as ToiletIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -34,6 +34,24 @@ const manualLocations: { label: string; location: Coordinates }[] = [
 
 const MAX_DISPLAY_DISTANCE_METERS = 1500;
 const distanceFilterKeys: FilterKey[] = ["within500m", "within1000m", "within1500m"];
+
+const usageSteps = [
+  {
+    title: "現在地を許可",
+    description: "近くのトイレを自動で探します。",
+    icon: ShieldCheck
+  },
+  {
+    title: "トイレを選ぶ",
+    description: "距離・設備・レビューを確認できます。",
+    icon: ToiletIcon
+  },
+  {
+    title: "経路案内へ",
+    description: "Google Mapsで徒歩ルートを開けます。",
+    icon: Navigation
+  }
+];
 
 function enrichToilets(toilets: ToiletWithDistance[], version = 0): ToiletWithDistance[] {
   void version;
@@ -195,6 +213,32 @@ export default function HomePage() {
               近くのトイレを探す
             </Button>
           </div>
+
+          <div className="mt-5 rounded-[30px] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-accent">How to use</p>
+                <h2 className="mt-1 text-lg font-black text-ink">使い方</h2>
+              </div>
+              <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500">3ステップ</span>
+            </div>
+            <div className="mt-4 space-y-2">
+              {usageSteps.map(({ title, description, icon: Icon }, index) => (
+                <div key={title} className="flex items-center gap-3 rounded-[22px] bg-slate-50 px-3 py-3 ring-1 ring-slate-200/60">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[16px] bg-white text-accent shadow-sm">
+                    <Icon size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-ink">
+                      {index + 1}. {title}
+                    </p>
+                    <p className="mt-0.5 text-xs font-bold leading-5 text-slate-500">{description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="mt-5 rounded-[30px] bg-slate-50 p-4 ring-1 ring-slate-200/70">
             <p className="text-sm font-bold text-ink">手動で場所を選ぶ</p>
             <div className="mt-3 grid grid-cols-3 gap-2">
