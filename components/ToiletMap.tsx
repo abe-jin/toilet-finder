@@ -1,5 +1,6 @@
 "use client";
 
+import { AvailabilityConfirmation } from "@/components/AvailabilityConfirmation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatDistance, googleMapsDirectionsUrl } from "@/lib/distance";
@@ -94,6 +95,7 @@ export function ToiletMap({ currentLocation, toilets, selectedToilet, onSelectTo
                 <span className="truncate">{selected.amenities.multipurpose ? "多目的あり" : selected.amenities.category}</span>
               </div>
             </div>
+            <AvailabilityConfirmation toiletId={selected.id} compact className="mt-3" />
             <div className="mt-4 grid grid-cols-2 gap-2">
               <Link href={`/toilet/${selected.id}`}>
                 <Button className="h-[50px] w-full rounded-[20px]" variant="secondary">

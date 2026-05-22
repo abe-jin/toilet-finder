@@ -2,6 +2,7 @@
 
 import { BottomNav } from "@/components/BottomNav";
 import { EmptyState } from "@/components/EmptyState";
+import { AvailabilityConfirmation } from "@/components/AvailabilityConfirmation";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewList } from "@/components/ReviewList";
 import { Badge } from "@/components/ui/Badge";
@@ -155,6 +156,8 @@ export default function ToiletDetailPage() {
             ))}
           </div>
         </Card>
+
+        <AvailabilityConfirmation toiletId={toilet.id} />
 
         <ReviewList toiletId={toilet.id} refreshKey={refreshKey} />
         <ReviewForm toiletId={toilet.id} onSubmitted={() => setRefreshKey((value) => value + 1)} />

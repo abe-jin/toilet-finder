@@ -98,9 +98,9 @@ npm audit
 
 ## Supabase準備メモ
 
-レビュー保存はSupabaseに対応しています。`NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` が未設定の場合はSupabaseへ接続せず、今まで通りlocalStorageだけで動きます。
+レビュー保存と「使えました / 使えなかった」の利用確認はSupabaseに対応しています。`NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` が未設定の場合はSupabaseへ接続せず、今まで通りlocalStorageだけで動きます。
 
-Supabaseを使う場合は、Supabaseで `reviews` テーブルを作成します。
+Supabaseを使う場合は、Supabaseで `reviews` と `confirmations` テーブルを作成します。
 
 | column | type | note |
 | --- | --- | --- |
@@ -114,10 +114,19 @@ Supabaseを使う場合は、Supabaseで `reviews` テーブルを作成しま�
 | `comment` | `text` | nullable |
 | `created_at` | `timestamptz` | default `now()` |
 
+`confirmations` はレビューを書かないユーザーがワンタップで利用可否を共有するためのテーブルです。
+
+| column | type | note |
+| --- | --- | --- |
+| `id` | `uuid` | primary key, default `gen_random_uuid()` |
+| `toilet_id` | `text` | OSM id or generated app toilet id |
+| `status` | `text` | `available` or `unavailable` |
+| `created_at` | `timestamptz` | default `now()` |
+
 ### Supabase設定手順
 
 1. Supabaseで新しいProjectを作成します。
-2. SQL Editorを開き、下のSQLを実行して `reviews` テーブルとRLSポリシーを作成します。
+2. SQL Editorを開き、下のSQLを実行して `reviews`, `confirmations` テーブルとRLSポリシーを作成します。
 3. Project Settings > API から `Project URL` と `anon public key` をコピーします。
 4. VercelのProject Settings > Environment Variablesに以下を設定します。
    - `NEXT_PUBLIC_SUPABASE_URL`
@@ -125,9 +134,9 @@ Supabaseを使う場合は、Supabaseで `reviews` テーブルを作成しま�
 5. Vercelで再デプロイします。
 6. 投稿したレビューが別端末でも表示されるか確認します。
 
-### reviewsテーブル作成SQL
+### reviews / confirmations テーブル作成SQL
 
-匿名ユーザーはレビューの読み取りと作成のみ可能にしています。更新・削除は許可していません。
+匿名ユーザーはレビューと利用確認の読み取り・作成のみ可能にしています。更新・削除は許可していません。連打防止はアプリ側のlocalStorageで簡易的に行っていますが、本格運用ではIPや認証、Edge Functionなどで追加制御してください。
 
 ```sql
 create table public.reviews (
@@ -162,6 +171,31 @@ with check (
   and facilities between 1 and 5
   and (rating is null or rating between 1 and 5)
   and char_length(coalesce(comment, '')) <= 1000
+);
+
+create table public.confirmations (
+  id uuid primary key default gen_random_uuid(),
+  toilet_id text not null,
+  status text not null,
+  created_at timestamptz not null default now(),
+  constraint confirmations_status_check check (status in ('available', 'unavailable'))
+);
+
+alter table public.confirmations enable row level security;
+
+create policy "Anyone can read confirmations"
+on public.confirmations
+for select
+to anon
+using (true);
+
+create policy "Anyone can create confirmations"
+on public.confirmations
+for insert
+to anon
+with check (
+  toilet_id <> ''
+  and status in ('available', 'unavailable')
 );
 ```
 
@@ -207,6 +241,7 @@ components/
   ToiletMap.tsx
 lib/
   distance.ts
+  confirmations.ts
   location.ts
   reviews.ts
   supabase.ts

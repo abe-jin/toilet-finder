@@ -38,6 +38,22 @@ export type Review = {
   createdAt: string;
 };
 
+export type ConfirmationStatus = "available" | "unavailable";
+
+export type ToiletConfirmation = {
+  id: string;
+  toiletId: string;
+  status: ConfirmationStatus;
+  createdAt: string;
+};
+
+export type ToiletConfirmationSummary = {
+  availableCount: number;
+  unavailableCount: number;
+  lastConfirmedAt?: string;
+  hasUnavailableReport: boolean;
+};
+
 export type SupabaseReviewRow = {
   id: string;
   toilet_id: string;
@@ -55,6 +71,18 @@ export type SupabaseReviewInsert = Omit<SupabaseReviewRow, "id" | "created_at"> 
   created_at?: string;
 };
 
+export type SupabaseConfirmationRow = {
+  id: string;
+  toilet_id: string;
+  status: ConfirmationStatus;
+  created_at: string;
+};
+
+export type SupabaseConfirmationInsert = Omit<SupabaseConfirmationRow, "id" | "created_at"> & {
+  id?: string;
+  created_at?: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -62,6 +90,12 @@ export type Database = {
         Row: SupabaseReviewRow;
         Insert: SupabaseReviewInsert;
         Update: Partial<SupabaseReviewInsert>;
+        Relationships: [];
+      };
+      confirmations: {
+        Row: SupabaseConfirmationRow;
+        Insert: SupabaseConfirmationInsert;
+        Update: Partial<SupabaseConfirmationInsert>;
         Relationships: [];
       };
     };
