@@ -61,6 +61,20 @@ export async function getReviews(toiletId: string): Promise<Review[]> {
   return (data ?? []).map(supabaseRowToReview);
 }
 
+export async function getAllReviews(): Promise<Review[]> {
+  if (!isSupabaseEnabled() || !supabase) {
+    return getStoredReviews().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map(supabaseRowToReview);
+}
+
 export async function createReview(draft: ReviewDraft): Promise<CreateReviewResult> {
   if (!isSupabaseEnabled() || !supabase) {
     return {

@@ -308,6 +308,7 @@ app/
   page.tsx
   map/page.tsx
   favorites/page.tsx
+  reviews/page.tsx
   toilet/[id]/page.tsx
 components/
   BottomNav.tsx

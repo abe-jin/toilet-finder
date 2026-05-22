@@ -10,10 +10,10 @@ const items = [
   { href: "/map", label: "マップ", icon: Map, match: (pathname: string) => pathname.startsWith("/map") },
   { href: "/favorites", label: "保存", icon: Heart, match: (pathname: string) => pathname.startsWith("/favorites") },
   {
-    href: "/#reviews",
+    href: "/reviews",
     label: "レビュー",
     icon: MessageSquareText,
-    match: (pathname: string) => pathname.startsWith("/toilet")
+    match: (pathname: string) => pathname.startsWith("/reviews")
   }
 ];
 
