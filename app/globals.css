@@ -27,6 +27,10 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
 }
 
+.app-shell {
+  padding-top: env(safe-area-inset-top);
+}
+
 button,
 input,
 textarea {

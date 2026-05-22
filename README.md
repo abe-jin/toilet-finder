@@ -72,12 +72,33 @@ npm audit
 - フィルターが動く
 - スマホ幅で下部ナビが押しやすい
 
+## ホーム画面に追加する手順
+
+PWA対応として `manifest.json` と192px/512pxアイコンを用意しています。Vercel公開後のHTTPS URLで確認してください。
+
+### iPhone Safari
+
+1. SafariでProduction URLを開きます。
+2. 画面下の共有ボタンを押します。
+3. **ホーム画面に追加** を選びます。
+4. 名前が `Toilet Finder` になっていることを確認して **追加** を押します。
+5. ホーム画面のアイコンから起動し、下部ナビと現在地取得が見やすいか確認します。
+
+### Android Chrome
+
+1. ChromeでProduction URLを開きます。
+2. 右上のメニューを開きます。
+3. **ホーム画面に追加** または **アプリをインストール** を選びます。
+4. `Toilet Finder` を追加します。
+5. ホーム画面のアイコンから起動し、地図・検索・経路案内を確認します。
+
 ## Vercel公開後に起きやすい問題
 
 - LeafletはSSRで壊れやすいため、地図ページでは `dynamic import` と `ssr: false` を使っています。
 - `window`, `localStorage`, `sessionStorage`, `navigator.geolocation` はクライアント側だけで使う構成です。
 - 現在地取得はHTTPSまたはlocalhostで動作します。VercelのProduction URLはHTTPSなので実機確認できます。
 - Overpass APIが混雑・失敗した場合はサンプルデータへフォールバックします。
+- オフライン時は画面上部に「ネットワークに接続できません」と表示します。完全なオフラインキャッシュは今後の拡張対象です。
 - 地図タイルはOpenStreetMapの公開タイルを使用しています。高トラフィック運用に進む場合はタイルプロバイダやキャッシュ戦略を検討してください。
 - 本番URLで地図が崩れる場合は、Leaflet CSSが `app/globals.css` で読み込まれているか確認してください。
 
@@ -271,6 +292,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 - 現在地マーカーとトイレピン
 - 地図を移動したエリアで再検索
 - 検索履歴を直近5件までlocalStorageに保存
+- PWA manifest、ホーム画面追加用アイコン、オフライン通知
 - Google Mapsの徒歩経路を起動
 - よく使うトイレのお気に入り保存
 - localStorageへのレビュー保存
@@ -294,6 +316,7 @@ components/
   FilterBar.tsx
   LocationSearch.tsx
   LoadingState.tsx
+  NetworkStatus.tsx
   NearestToiletCard.tsx
   ReviewForm.tsx
   ReviewList.tsx
