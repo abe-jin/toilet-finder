@@ -35,9 +35,9 @@ export function ToiletCard({ toilet, compact = false, currentLocation }: ToiletC
               <span className="line-clamp-1">{toilet.address}</span>
             </p>
           </div>
-          <div className="shrink-0 rounded-[20px] bg-slate-950 px-3 py-2 text-right text-white">
-            <p className="text-base font-black leading-none">{formatDistance(toilet.distanceMeters)}</p>
-            <p className="mt-1 text-[11px] font-bold text-white/64">徒歩{toilet.walkingMinutes}分</p>
+          <div className="shrink-0 rounded-[20px] bg-slate-950 px-3.5 py-2.5 text-right text-white shadow-lg shadow-slate-900/10">
+            <p className="text-lg font-black leading-none">{formatDistance(toilet.distanceMeters)}</p>
+            <p className="mt-1 text-xs font-black text-teal-200">徒歩{toilet.walkingMinutes}分</p>
           </div>
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2">
@@ -51,7 +51,7 @@ export function ToiletCard({ toilet, compact = false, currentLocation }: ToiletC
           <div className="rounded-2xl bg-slate-50 px-3 py-2 text-slate-700">
             <p className="flex items-center gap-1 truncate text-sm font-black">
               <Clock3 size={14} />
-              {toilet.amenities.open24h ? "24h" : "営業中"}
+              {toilet.amenities.open24h ? "24h" : toilet.openingHours === "営業時間不明" ? "不明" : "営業"}
             </p>
             <p className="truncate text-[11px] font-bold text-slate-500">{toilet.openingHours}</p>
           </div>
@@ -81,7 +81,7 @@ export function ToiletCard({ toilet, compact = false, currentLocation }: ToiletC
         <a href={googleMapsDirectionsUrl(toilet, currentLocation)} target="_blank" rel="noreferrer">
           <Button className="mt-4 w-full" variant="secondary">
             <Navigation size={17} />
-            ここへ行く
+            経路案内
           </Button>
         </a>
       ) : null}

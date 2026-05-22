@@ -113,13 +113,13 @@ export default function ToiletDetailPage() {
           {toilet.address}
         </p>
         <div className="mt-5 grid grid-cols-3 gap-2">
-          <div className="rounded-[20px] bg-white/10 p-3">
-            <p className="text-xs text-white/60">距離</p>
-            <p className="mt-1 text-lg font-black">{formatDistance(toilet.distanceMeters)}</p>
+          <div className="rounded-[22px] bg-white p-3 text-ink shadow-lg shadow-black/10">
+            <p className="text-xs font-bold text-slate-500">距離</p>
+            <p className="mt-1 text-2xl font-black">{formatDistance(toilet.distanceMeters)}</p>
           </div>
-          <div className="rounded-[20px] bg-white/10 p-3">
-            <p className="text-xs text-white/60">徒歩</p>
-            <p className="mt-1 text-lg font-black">{toilet.walkingMinutes}分</p>
+          <div className="rounded-[22px] bg-teal-400 p-3 text-slate-950 shadow-lg shadow-teal-950/10">
+            <p className="text-xs font-bold text-slate-700">徒歩</p>
+            <p className="mt-1 text-2xl font-black">{toilet.walkingMinutes}分</p>
           </div>
           <div className="rounded-[20px] bg-white/10 p-3">
             <p className="text-xs text-white/60">評価</p>
@@ -132,7 +132,7 @@ export default function ToiletDetailPage() {
         <a href={googleMapsDirectionsUrl(toilet, location)} target="_blank" rel="noreferrer">
           <Button className="mt-5 h-14 w-full rounded-[22px] bg-white text-ink hover:bg-slate-100">
             <Navigation size={18} />
-            Google Mapsで開く
+            Google Mapsで経路案内
           </Button>
         </a>
       </header>

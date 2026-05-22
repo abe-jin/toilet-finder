@@ -72,8 +72,8 @@ export function ToiletMap({ currentLocation, toilets, selectedToilet, onSelectTo
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="line-clamp-2 text-[16px] font-black leading-6 text-ink">{selected.name}</p>
-                <p className="mt-1 text-sm text-muted">
-                  {formatDistance(selected.distanceMeters)}・徒歩{selected.walkingMinutes}分
+                <p className="mt-1 text-base font-black text-ink">
+                  徒歩{selected.walkingMinutes}分 <span className="text-sm text-muted">{formatDistance(selected.distanceMeters)}</span>
                 </p>
               </div>
               <div className="shrink-0 rounded-[18px] bg-slate-950 px-3 py-2 text-right text-white">
@@ -94,7 +94,7 @@ export function ToiletMap({ currentLocation, toilets, selectedToilet, onSelectTo
                 <span className="truncate">{selected.amenities.multipurpose ? "多目的あり" : selected.amenities.category}</span>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2">
               <Link href={`/toilet/${selected.id}`}>
                 <Button className="h-[50px] w-full rounded-[20px]" variant="secondary">
                   詳細を見る
@@ -105,8 +105,9 @@ export function ToiletMap({ currentLocation, toilets, selectedToilet, onSelectTo
                 target="_blank"
                 rel="noreferrer"
               >
-                <Button size="icon" aria-label="Google Mapsで開く">
+                <Button className="h-[50px] w-full rounded-[20px]" aria-label="Google Mapsで経路案内を開く">
                   <Navigation size={18} />
+                  経路案内
                 </Button>
               </a>
             </div>

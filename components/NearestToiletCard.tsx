@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatDistance, googleMapsDirectionsUrl } from "@/lib/distance";
 import type { Coordinates, ToiletWithDistance } from "@/lib/types";
-import { Accessibility, ArrowRight, Clock3, Navigation, ShieldCheck, Star } from "lucide-react";
+import { Accessibility, ArrowRight, Clock3, MapPinned, Navigation, ShieldCheck, Star } from "lucide-react";
 import Link from "next/link";
 
 export function NearestToiletCard({ toilet, currentLocation }: { toilet: ToiletWithDistance; currentLocation?: Coordinates | null }) {
@@ -23,9 +23,9 @@ export function NearestToiletCard({ toilet, currentLocation }: { toilet: ToiletW
             <h2 className="line-clamp-2 text-[21px] font-black leading-7">{toilet.name}</h2>
             <p className="mt-2 line-clamp-2 text-sm leading-5 text-white/68">{toilet.address}</p>
           </div>
-          <div className="shrink-0 rounded-[22px] bg-white px-3.5 py-3 text-right text-ink shadow-lg shadow-black/10">
-            <p className="text-xl font-black leading-none">{formatDistance(toilet.distanceMeters)}</p>
-            <p className="mt-1 text-[11px] font-black text-slate-500">徒歩{toilet.walkingMinutes}分</p>
+          <div className="shrink-0 rounded-[24px] bg-white px-4 py-3 text-right text-ink shadow-lg shadow-black/10">
+            <p className="text-[24px] font-black leading-none">{formatDistance(toilet.distanceMeters)}</p>
+            <p className="mt-1 text-sm font-black text-teal-700">徒歩{toilet.walkingMinutes}分</p>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2">
@@ -45,6 +45,13 @@ export function NearestToiletCard({ toilet, currentLocation }: { toilet: ToiletW
             <p className="mt-1 truncate text-sm font-black">{toilet.amenities.multipurpose ? "多目的" : toilet.amenities.category}</p>
           </div>
         </div>
+        <div className="mt-3 flex items-center justify-between rounded-2xl bg-white px-3 py-2 text-ink">
+          <div className="flex items-center gap-2">
+            <MapPinned size={18} className="text-accent" />
+            <span className="text-sm font-black">徒歩{toilet.walkingMinutes}分</span>
+          </div>
+          <span className="text-sm font-black text-slate-500">{formatDistance(toilet.distanceMeters)}</span>
+        </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <Badge className="bg-white/12 text-white">
             <Accessibility size={13} className="mr-1" />
@@ -52,7 +59,7 @@ export function NearestToiletCard({ toilet, currentLocation }: { toilet: ToiletW
           </Badge>
           <Badge className="bg-white/12 text-white">
             <Clock3 size={13} className="mr-1" />
-            {toilet.amenities.open24h ? "24時間" : "営業時間あり"}
+            {toilet.amenities.open24h ? "24時間" : toilet.openingHours === "営業時間不明" ? "営業時間不明" : "営業時間あり"}
           </Badge>
           <Badge className="bg-white/12 text-white">
             <ShieldCheck size={13} className="mr-1" />
@@ -64,7 +71,7 @@ export function NearestToiletCard({ toilet, currentLocation }: { toilet: ToiletW
           <a href={googleMapsDirectionsUrl(toilet, currentLocation)} target="_blank" rel="noreferrer">
             <Button className="h-[52px] w-full rounded-[20px] bg-white text-ink hover:bg-slate-100">
               <Navigation size={17} />
-              ここへ行く
+              経路案内
             </Button>
           </a>
           <Link href={`/toilet/${toilet.id}`}>
