@@ -1,0 +1,9 @@
+{
+  "name": "Toilet Finder / 近くのトイレマップ",
+  "short_name": "Toilet Finder",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0ea5a3",
+  "icons": []
+}
