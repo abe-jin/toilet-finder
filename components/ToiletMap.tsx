@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { formatDistance } from "@/lib/distance";
+import { formatDistance, googleMapsDirectionsUrl } from "@/lib/distance";
 import type { Coordinates, ToiletWithDistance } from "@/lib/types";
 import L from "leaflet";
 import { Accessibility, Clock3, Navigation, Star } from "lucide-react";
@@ -25,7 +25,7 @@ const toiletIcon = L.divIcon({
 
 function Recenter({ location }: { location: Coordinates }) {
   const map = useMap();
-  map.setView([location.lat, location.lng], map.getZoom(), { animate: true });
+  map.setView([location.lat, location.lng], Math.max(map.getZoom(), 16), { animate: true });
   return null;
 }
 
@@ -43,7 +43,7 @@ export function ToiletMap({ currentLocation, toilets, selectedToilet, onSelectTo
     <div className="relative h-[calc(100dvh-92px)] min-h-[640px] overflow-hidden bg-slate-100">
       <MapContainer
         center={[currentLocation.lat, currentLocation.lng]}
-        zoom={15}
+        zoom={16}
         scrollWheelZoom
         zoomControl={false}
         className="z-0 h-full w-full"
@@ -101,7 +101,7 @@ export function ToiletMap({ currentLocation, toilets, selectedToilet, onSelectTo
                 </Button>
               </Link>
               <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}&travelmode=walking`}
+                href={googleMapsDirectionsUrl(selected, currentLocation)}
                 target="_blank"
                 rel="noreferrer"
               >

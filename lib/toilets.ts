@@ -207,7 +207,7 @@ const OVERPASS_ENDPOINTS = [
   "https://overpass.kumi.systems/api/interpreter"
 ];
 
-const SEARCH_RADII_METERS = [1500, 3000, 5000];
+const SEARCH_RADII_METERS = [500, 1000, 1500];
 
 const PUBLIC_FACILITY_AMENITIES = new Set([
   "public_building",
@@ -457,7 +457,7 @@ export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletF
     debug.emptyRadii.push(radiusMeters);
   }
 
-  debug.fallbackReason = "Overpass API returned no usable toilet candidates for 1500m, 3000m, and 5000m.";
+  debug.fallbackReason = "Overpass API returned no usable toilet candidates within 1500m.";
   return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback", debug };
 }
 

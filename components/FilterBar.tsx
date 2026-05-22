@@ -2,7 +2,7 @@
 
 import type { FilterKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Accessibility, Clock3, Droplets, Sparkles, Star } from "lucide-react";
+import { Accessibility, Clock3, Droplets, MapPin, Sparkles, Star } from "lucide-react";
 import type { ElementType } from "react";
 
 const filters: { key: FilterKey; label: string; icon: ElementType }[] = [
@@ -10,6 +10,8 @@ const filters: { key: FilterKey; label: string; icon: ElementType }[] = [
   { key: "open24h", label: "24時間", icon: Clock3 },
   { key: "rating4", label: "評価4+", icon: Star },
   { key: "within500m", label: "500m以内", icon: Sparkles },
+  { key: "within1000m", label: "1km以内", icon: MapPin },
+  { key: "within1500m", label: "1.5km以内", icon: MapPin },
   { key: "clean", label: "清潔さ高め", icon: Droplets }
 ];
 

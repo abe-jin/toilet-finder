@@ -47,7 +47,7 @@ function amenityTags(toilet: ToiletWithDistance) {
 export default function ToiletDetailPage() {
   const routeParams = useParams<{ id: string }>();
   const toiletId = Array.isArray(routeParams.id) ? routeParams.id[0] : routeParams.id;
-  const [location, setLocation] = useState<Coordinates>(fallbackLocation);
+  const [location, setLocation] = useState<Coordinates | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export default function ToiletDetailPage() {
     const found = getToiletById(toiletId, candidates) ?? getToiletById(toiletId, sampleToilets);
     if (!found) return null;
 
-    const [withDistanceToilet] = withDistance([found], location);
+    const [withDistanceToilet] = withDistance([found], location ?? fallbackLocation);
     const toiletReviews = getReviewsForToilet(found.id, getStoredReviews());
     return {
       ...withDistanceToilet,
@@ -129,7 +129,7 @@ export default function ToiletDetailPage() {
             </p>
           </div>
         </div>
-        <a href={googleMapsDirectionsUrl(toilet, toilet.name)} target="_blank" rel="noreferrer">
+        <a href={googleMapsDirectionsUrl(toilet, location)} target="_blank" rel="noreferrer">
           <Button className="mt-5 h-14 w-full rounded-[22px] bg-white text-ink hover:bg-slate-100">
             <Navigation size={18} />
             Google Mapsで開く

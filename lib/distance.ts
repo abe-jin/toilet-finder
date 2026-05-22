@@ -41,7 +41,8 @@ export function withDistance(toilets: Toilet[], currentLocation: Coordinates): T
     .sort((a, b) => a.distanceMeters - b.distanceMeters);
 }
 
-export function googleMapsDirectionsUrl(destination: Coordinates, name?: string): string {
-  const query = encodeURIComponent(`${destination.lat},${destination.lng}${name ? ` ${name}` : ""}`);
-  return `https://www.google.com/maps/dir/?api=1&destination=${query}&travelmode=walking`;
+export function googleMapsDirectionsUrl(destination: Coordinates, origin?: Coordinates | null): string {
+  const destinationQuery = `${destination.lat},${destination.lng}`;
+  const originQuery = origin ? `&origin=${origin.lat},${origin.lng}` : "";
+  return `https://www.google.com/maps/dir/?api=1${originQuery}&destination=${destinationQuery}&travelmode=walking`;
 }

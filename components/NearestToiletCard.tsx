@@ -1,11 +1,11 @@
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatDistance, googleMapsDirectionsUrl } from "@/lib/distance";
-import type { ToiletWithDistance } from "@/lib/types";
+import type { Coordinates, ToiletWithDistance } from "@/lib/types";
 import { Accessibility, ArrowRight, Clock3, Navigation, ShieldCheck, Star } from "lucide-react";
 import Link from "next/link";
 
-export function NearestToiletCard({ toilet }: { toilet: ToiletWithDistance }) {
+export function NearestToiletCard({ toilet, currentLocation }: { toilet: ToiletWithDistance; currentLocation?: Coordinates | null }) {
   const rating = toilet.reviewRating ?? toilet.rating;
 
   return (
@@ -61,7 +61,7 @@ export function NearestToiletCard({ toilet }: { toilet: ToiletWithDistance }) {
         </div>
         </div>
         <div className="grid grid-cols-[1fr_auto] gap-2 border-t border-white/10 bg-white/[0.03] p-3">
-          <a href={googleMapsDirectionsUrl(toilet, toilet.name)} target="_blank" rel="noreferrer">
+          <a href={googleMapsDirectionsUrl(toilet, currentLocation)} target="_blank" rel="noreferrer">
             <Button className="h-[52px] w-full rounded-[20px] bg-white text-ink hover:bg-slate-100">
               <Navigation size={17} />
               ここへ行く

@@ -2,16 +2,17 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatDistance, googleMapsDirectionsUrl } from "@/lib/distance";
-import type { ToiletWithDistance } from "@/lib/types";
+import type { Coordinates, ToiletWithDistance } from "@/lib/types";
 import { Accessibility, Baby, Clock3, MapPin, Navigation, Star, Toilet } from "lucide-react";
 import Link from "next/link";
 
 type ToiletCardProps = {
   toilet: ToiletWithDistance;
   compact?: boolean;
+  currentLocation?: Coordinates | null;
 };
 
-export function ToiletCard({ toilet, compact = false }: ToiletCardProps) {
+export function ToiletCard({ toilet, compact = false, currentLocation }: ToiletCardProps) {
   const rating = toilet.reviewRating ?? toilet.rating;
 
   return (
@@ -77,7 +78,7 @@ export function ToiletCard({ toilet, compact = false }: ToiletCardProps) {
         </div>
       </Link>
       {!compact ? (
-        <a href={googleMapsDirectionsUrl(toilet, toilet.name)} target="_blank" rel="noreferrer">
+        <a href={googleMapsDirectionsUrl(toilet, currentLocation)} target="_blank" rel="noreferrer">
           <Button className="mt-4 w-full" variant="secondary">
             <Navigation size={17} />
             ここへ行く

@@ -15,7 +15,7 @@ import type {
   ToiletFetchDebug,
   ToiletWithDistance
 } from "@/lib/types";
-import { withDistance } from "@/lib/distance";
+import { googleMapsDirectionsUrl, withDistance } from "@/lib/distance";
 import { AlertCircle, LocateFixed } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
@@ -24,6 +24,8 @@ const ToiletMap = dynamic(() => import("@/components/ToiletMap").then((module) =
   ssr: false,
   loading: () => <LoadingState label="地図を準備しています" />
 });
+
+const MAX_DISPLAY_DISTANCE_METERS = 1500;
 
 function enrichToilets(toilets: ToiletWithDistance[]): ToiletWithDistance[] {
   const reviews = getStoredReviews();
@@ -85,11 +87,25 @@ export default function MapPage() {
     if (!location) return [];
     return enrichToilets(withDistance(toilets, location));
   }, [location, toilets]);
+  const nearbyToilets = useMemo(
+    () => mappedToilets.filter((toilet) => toilet.distanceMeters <= MAX_DISPLAY_DISTANCE_METERS),
+    [mappedToilets]
+  );
+  const excludedOverLimitCount = mappedToilets.length - nearbyToilets.length;
 
   const selected = useMemo(
-    () => mappedToilets.find((toilet) => toilet.id === selectedId) ?? mappedToilets[0],
-    [mappedToilets, selectedId]
+    () => nearbyToilets.find((toilet) => toilet.id === selectedId) ?? nearbyToilets[0],
+    [nearbyToilets, selectedId]
   );
+  const closestDistance = nearbyToilets[0]?.distanceMeters;
+  const sourceMessage =
+    dataSource === "overpass"
+      ? closestDistance !== undefined && closestDistance <= 500
+        ? "すぐ近くの実在トイレを表示中"
+        : closestDistance !== undefined && closestDistance <= 1000
+          ? "近くの実在トイレを表示中"
+          : "少し離れた実在トイレを表示中"
+      : "近くの実在トイレが見つかりませんでした";
 
   if (status === "loading") {
     return (
@@ -126,9 +142,10 @@ export default function MapPage() {
         <h1 className="text-base font-black text-ink">近くのトイレ</h1>
       </div>
       <div className="absolute left-4 right-4 top-[92px] z-20 rounded-2xl bg-white/88 px-3 py-2 text-xs font-bold text-slate-600 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
-        {dataSource === "overpass"
-          ? "周辺の実在トイレを表示中"
-          : "周辺の実データを取得できなかったため、確認用の仮データを表示しています"}
+        {sourceMessage}
+        {dataSource === "generated-fallback" ? (
+          <span className="mt-1 block font-medium text-slate-500">確認用の仮データを表示しています</span>
+        ) : null}
         {process.env.NODE_ENV === "development" ? (
           <span className="ml-2 rounded-full bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500 ring-1 ring-slate-200">
             source: {dataSource}
@@ -140,6 +157,12 @@ export default function MapPage() {
           <summary className="cursor-pointer font-black text-white">Overpass debug</summary>
           <div className="mt-2 space-y-1 font-mono leading-5">
             <p>empty radii: {fetchDebug.emptyRadii.join(", ") || "none"}</p>
+            {location ? (
+              <p>
+                current: {location.lat},{location.lng}
+              </p>
+            ) : null}
+            <p>excluded over 1500m: {excludedOverLimitCount}</p>
             <p>fallback: {fetchDebug.fallbackReason ?? "none"}</p>
             {fetchDebug.attempts.map((attempt, index) => (
               <p key={`${attempt.endpoint}-${attempt.radiusMeters}-${index}`}>
@@ -147,12 +170,18 @@ export default function MapPage() {
                 {attempt.mappedToiletCount ?? "-"} {attempt.error ? `error:${attempt.error}` : ""}
               </p>
             ))}
+            {nearbyToilets.map((toilet) => (
+              <p key={toilet.id}>
+                toilet {toilet.id}: {toilet.lat},{toilet.lng} distance:{toilet.distanceMeters}m maps:
+                {googleMapsDirectionsUrl(toilet, location)}
+              </p>
+            ))}
           </div>
         </details>
       ) : null}
       <ToiletMap
         currentLocation={location}
-        toilets={mappedToilets}
+        toilets={nearbyToilets}
         selectedToilet={selected}
         onSelectToilet={(toilet) => setSelectedId(toilet.id)}
       />

@@ -19,7 +19,7 @@ import type {
   ToiletFetchDebug,
   ToiletWithDistance
 } from "@/lib/types";
-import { withDistance } from "@/lib/distance";
+import { googleMapsDirectionsUrl, withDistance } from "@/lib/distance";
 import { AlertCircle, Crosshair, LocateFixed, MapPin, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -29,6 +29,9 @@ const manualLocations: { label: string; location: Coordinates }[] = [
   { label: "渋谷", location: { lat: 35.65803, lng: 139.70164 } },
   { label: "東京駅", location: { lat: 35.68124, lng: 139.76713 } }
 ];
+
+const MAX_DISPLAY_DISTANCE_METERS = 1500;
+const distanceFilterKeys: FilterKey[] = ["within500m", "within1000m", "within1500m"];
 
 function enrichToilets(toilets: ToiletWithDistance[], version = 0): ToiletWithDistance[] {
   void version;
@@ -49,6 +52,8 @@ function applyFilters(toilets: ToiletWithDistance[], filters: FilterKey[]): Toil
     if (filters.includes("open24h") && !toilet.amenities.open24h) return false;
     if (filters.includes("rating4") && (toilet.reviewRating ?? toilet.rating) < 4) return false;
     if (filters.includes("within500m") && toilet.distanceMeters > 500) return false;
+    if (filters.includes("within1000m") && toilet.distanceMeters > 1000) return false;
+    if (filters.includes("within1500m") && toilet.distanceMeters > 1500) return false;
     if (filters.includes("clean") && (toilet.cleanlinessAverage ?? toilet.rating) < 4.2) return false;
     return true;
   });
@@ -60,7 +65,7 @@ export default function HomePage() {
   const [toilets, setToilets] = useState<Toilet[]>(sampleToilets);
   const [dataSource, setDataSource] = useState<ToiletDataSource>("tokyo-sample");
   const [fetchDebug, setFetchDebug] = useState<ToiletFetchDebug | undefined>();
-  const [filters, setFilters] = useState<FilterKey[]>([]);
+  const [filters, setFilters] = useState<FilterKey[]>(["within1500m"]);
   const [reviewVersion, setReviewVersion] = useState(0);
 
   useEffect(() => {
@@ -115,8 +120,24 @@ export default function HomePage() {
     return enrichToilets(withDistance(toilets, location), reviewVersion);
   }, [location, toilets, reviewVersion]);
 
-  const filteredToilets = useMemo(() => applyFilters(distanceSorted, filters), [distanceSorted, filters]);
+  const nearbyToilets = useMemo(
+    () => distanceSorted.filter((toilet) => toilet.distanceMeters <= MAX_DISPLAY_DISTANCE_METERS),
+    [distanceSorted]
+  );
+  const excludedOverLimitCount = distanceSorted.length - nearbyToilets.length;
+  const filteredToilets = useMemo(() => applyFilters(nearbyToilets, filters), [nearbyToilets, filters]);
   const nearest = filteredToilets[0];
+  const closestDistance = nearbyToilets[0]?.distanceMeters;
+  const sourceMessage =
+    dataSource === "overpass"
+      ? closestDistance !== undefined && closestDistance <= 500
+        ? "すぐ近くの実在トイレを表示中"
+        : closestDistance !== undefined && closestDistance <= 1000
+          ? "近くの実在トイレを表示中"
+          : "少し離れた実在トイレを表示中"
+      : dataSource === "generated-fallback"
+        ? "近くの実在トイレが見つかりませんでした"
+        : "現在地が取得できなかったため、サンプルデータを表示しています";
 
   return (
     <main className="min-h-dvh bg-white pb-32">
@@ -191,14 +212,19 @@ export default function HomePage() {
 
       {status === "granted" && location ? (
         <>
-          {nearest ? <NearestToiletCard toilet={nearest} /> : null}
+          {nearest ? <NearestToiletCard toilet={nearest} currentLocation={location} /> : null}
           <section className="space-y-5 px-4 pt-5">
             <FilterBar
               activeFilters={filters}
               onToggle={(filter) =>
-                setFilters((current) =>
-                  current.includes(filter) ? current.filter((item) => item !== filter) : [...current, filter]
-                )
+                setFilters((current) => {
+                  if (distanceFilterKeys.includes(filter)) {
+                    return current.includes(filter)
+                      ? current
+                      : [...current.filter((item) => !distanceFilterKeys.includes(item)), filter];
+                  }
+                  return current.includes(filter) ? current.filter((item) => item !== filter) : [...current, filter];
+                })
               }
             />
             <div className="flex items-center justify-between">
@@ -209,11 +235,12 @@ export default function HomePage() {
               <Search size={21} className="text-slate-400" />
             </div>
             <div className="rounded-2xl bg-slate-50 px-3 py-2 text-xs font-bold leading-5 text-slate-600 ring-1 ring-slate-200/70">
-              {dataSource === "overpass"
-                ? "周辺の実在トイレを表示中"
-                : dataSource === "generated-fallback"
-                  ? "周辺の実データを取得できなかったため、確認用の仮データを表示しています"
-                  : "現在地が取得できなかったため、サンプルデータを表示しています"}
+              {sourceMessage}
+              {dataSource === "generated-fallback" ? (
+                <span className="mt-1 block font-medium text-slate-500">
+                  地図を少し移動するか、手動でエリアを選んでください。確認用データを表示しています。
+                </span>
+              ) : null}
               {process.env.NODE_ENV === "development" ? (
                 <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-500 ring-1 ring-slate-200">
                   source: {dataSource}
@@ -225,7 +252,17 @@ export default function HomePage() {
                 <summary className="cursor-pointer font-black text-white">Overpass debug</summary>
                 <div className="mt-2 space-y-1 font-mono leading-5">
                   <p>empty radii: {fetchDebug.emptyRadii.join(", ") || "none"}</p>
+                  <p>
+                    current: {location.lat},{location.lng}
+                  </p>
+                  <p>excluded over 1500m: {excludedOverLimitCount}</p>
                   <p>fallback: {fetchDebug.fallbackReason ?? "none"}</p>
+                  {nearbyToilets.map((toilet) => (
+                    <p key={toilet.id}>
+                      toilet {toilet.id}: {toilet.lat},{toilet.lng} distance:{toilet.distanceMeters}m maps:
+                      {googleMapsDirectionsUrl(toilet, location)}
+                    </p>
+                  ))}
                   {fetchDebug.attempts.map((attempt, index) => (
                     <p key={`${attempt.endpoint}-${attempt.radiusMeters}-${index}`}>
                       {attempt.radiusMeters}m {attempt.status ?? "-"} raw:{attempt.rawElementCount ?? "-"} mapped:
@@ -241,7 +278,7 @@ export default function HomePage() {
             {filteredToilets.length > 0 ? (
               <div className="space-y-3">
                 {filteredToilets.map((toilet) => (
-                  <ToiletCard key={toilet.id} toilet={toilet} />
+                  <ToiletCard key={toilet.id} toilet={toilet} currentLocation={location} />
                 ))}
               </div>
             ) : (

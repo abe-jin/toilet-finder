@@ -60,6 +60,7 @@ export type ToiletFetchDebug = {
   attempts: OverpassAttemptDebug[];
   emptyRadii: number[];
   fallbackReason?: string;
+  excludedOverLimitCount?: number;
 };
 
 export type ToiletFetchResult = {
@@ -68,6 +69,6 @@ export type ToiletFetchResult = {
   debug?: ToiletFetchDebug;
 };
 
-export type FilterKey = "multipurpose" | "open24h" | "rating4" | "within500m" | "clean";
+export type FilterKey = "multipurpose" | "open24h" | "rating4" | "within500m" | "within1000m" | "within1500m" | "clean";
 
 export type LocationStatus = "idle" | "loading" | "granted" | "denied" | "error";
