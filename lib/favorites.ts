@@ -1,6 +1,7 @@
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 import type { Toilet } from "@/lib/types";
 
-const STORAGE_KEY = "toilet-finder-favorites-v1";
+const STORAGE_KEY = STORAGE_KEYS.favorites;
 const FAVORITES_EVENT = "toilet-favorites-updated";
 
 export function getFavoriteToilets(): Toilet[] {

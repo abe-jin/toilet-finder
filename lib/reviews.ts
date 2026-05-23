@@ -1,7 +1,8 @@
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 import type { Review, SupabaseReviewRow, ToiletWithDistance } from "@/lib/types";
 import { isSupabaseEnabled, supabase } from "@/lib/supabase";
 
-const STORAGE_KEY = "toilet-finder-reviews-v1";
+const STORAGE_KEY = STORAGE_KEYS.reviews;
 
 export type ReviewDraft = Omit<Review, "id" | "createdAt">;
 

@@ -8,7 +8,7 @@ import {
   type GeocodingResult
 } from "@/lib/geocoding";
 import { Clock3, Loader2, Search } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type LocationSearchProps = {
   onResolved: (result: GeocodingResult, query: string) => Promise<void> | void;
@@ -20,10 +20,14 @@ export function LocationSearch({ onResolved, compact = false }: LocationSearchPr
   const [history, setHistory] = useState<string[]>(() => getLocationSearchHistory());
   const [searching, setSearching] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const lastSearchedAtRef = useRef<number>(0);
 
   const submit = async (nextQuery = query) => {
     const trimmedQuery = nextQuery.trim();
     if (!trimmedQuery) return;
+
+    // Nominatim usage policy: avoid rapid consecutive requests
+    if (Date.now() - lastSearchedAtRef.current < 1000) return;
 
     try {
       setSearching(true);
@@ -41,6 +45,7 @@ export function LocationSearch({ onResolved, compact = false }: LocationSearchPr
       console.error("[LocationSearch] Geocoding failed:", error);
       setMessage("検索に失敗しました。時間をおいて再度お試しください");
     } finally {
+      lastSearchedAtRef.current = Date.now();
       setSearching(false);
     }
   };

@@ -1,4 +1,5 @@
 import { getCooldownSeconds, isCoolingDown, markCooldownSubmitted } from "@/lib/cooldown";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { isSupabaseEnabled, supabase } from "@/lib/supabase";
 import type {
   ConfirmationStatus,
@@ -6,8 +7,8 @@ import type {
   ToiletConfirmationSummary
 } from "@/lib/types";
 
-const STORAGE_KEY = "toilet-finder-confirmations-v1";
-const COOLDOWN_STORAGE_KEY = "toilet-finder-confirmation-cooldowns-v1";
+const STORAGE_KEY = STORAGE_KEYS.confirmations;
+const COOLDOWN_STORAGE_KEY = STORAGE_KEYS.confirmationCooldowns;
 const COOLDOWN_MS = 10 * 60 * 1000;
 
 export type ConfirmationStorageMode = "supabase" | "local";

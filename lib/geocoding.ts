@@ -1,6 +1,7 @@
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 import type { Coordinates } from "@/lib/types";
 
-const HISTORY_KEY = "toilet-finder-location-search-history-v1";
+const HISTORY_KEY = STORAGE_KEYS.locationSearchHistory;
 const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 
 export type GeocodingResult = Coordinates & {

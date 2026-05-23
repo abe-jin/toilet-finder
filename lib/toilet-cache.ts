@@ -1,8 +1,9 @@
 import { sampleToilets } from "@/data/sample-toilets";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 import type { CachedToiletSearch, Coordinates, Toilet, ToiletDataSource } from "@/lib/types";
 
-const TOILET_CACHE_KEY = "toilet-finder-last-toilets-v1";
-const TOILET_SEARCH_CACHE_KEY = "toilet-finder-last-search-v1";
+const TOILET_CACHE_KEY = STORAGE_KEYS.toiletCache;
+const TOILET_SEARCH_CACHE_KEY = STORAGE_KEYS.toiletSearchCache;
 const TOILET_SEARCH_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 
 export function cacheToilets(toilets: Toilet[]) {

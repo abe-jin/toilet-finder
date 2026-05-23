@@ -10,26 +10,26 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
-    "@types/leaflet": "latest",
-    "clsx": "latest",
-    "leaflet": "latest",
-    "lucide-react": "latest",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "react-leaflet": "latest",
-    "tailwind-merge": "latest"
+    "@types/leaflet": "^1.9.21",
+    "clsx": "^2.1.1",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.16.0",
+    "next": "^16.2.6",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-leaflet": "^5.0.0",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "latest",
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "autoprefixer": "latest",
+    "@tailwindcss/postcss": "^4.3.0",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
-    "eslint-config-next": "latest",
-    "postcss": "latest",
+    "eslint-config-next": "^16.2.6",
+    "postcss": "^8.5.15",
     "tailwindcss": "^3.4.17",
-    "typescript": "latest"
+    "typescript": "^6.0.3"
   }
 }

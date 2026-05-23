@@ -1,9 +1,10 @@
 "use client";
 
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { ChevronDown, HelpCircle, Navigation, ShieldCheck, Toilet as ToiletIcon } from "lucide-react";
 import { useState } from "react";
 
-const USAGE_GUIDE_DISMISSED_KEY = "toinavi-usage-guide-dismissed-v1";
+const USAGE_GUIDE_DISMISSED_KEY = STORAGE_KEYS.usageGuideDismissed;
 
 const usageSteps = [
   { title: "現在地を許可", description: "近くのトイレを自動で探します。", icon: ShieldCheck },

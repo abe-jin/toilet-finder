@@ -1,9 +1,10 @@
 import { getCooldownSeconds, isCoolingDown, markCooldownSubmitted } from "@/lib/cooldown";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { isSupabaseEnabled, supabase } from "@/lib/supabase";
 import type { ToiletReport, ToiletReportReason } from "@/lib/types";
 
-const STORAGE_KEY = "toilet-finder-reports-v1";
-const COOLDOWN_STORAGE_KEY = "toilet-finder-report-cooldowns-v1";
+const STORAGE_KEY = STORAGE_KEYS.reports;
+const COOLDOWN_STORAGE_KEY = STORAGE_KEYS.reportCooldowns;
 const COOLDOWN_MS = 30 * 60 * 1000;
 
 export type ReportDraft = {

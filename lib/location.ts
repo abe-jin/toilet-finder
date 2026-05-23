@@ -1,6 +1,7 @@
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 import type { Coordinates } from "@/lib/types";
 
-const LOCATION_KEY = "toilet-finder-last-location-v1";
+const LOCATION_KEY = STORAGE_KEYS.location;
 
 export function cacheLocation(location: Coordinates) {
   if (typeof window === "undefined") return;
