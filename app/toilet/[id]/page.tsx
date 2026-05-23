@@ -14,6 +14,7 @@ import { formatDistance, googleMapsDirectionsUrl, withDistance } from "@/lib/dis
 import { averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
 import { getCachedToilets, getToiletById, sampleToilets } from "@/lib/toilets";
 import type { Coordinates, ToiletWithDistance } from "@/lib/types";
+import { FAST_GEOLOCATION_OPTIONS } from "@/lib/constants";
 import {
   Accessibility,
   ArrowLeft,
@@ -59,7 +60,7 @@ export default function ToiletDetailPage() {
         setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
       },
       () => undefined,
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 }
+      FAST_GEOLOCATION_OPTIONS
     );
   }, []);
 

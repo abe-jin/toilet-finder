@@ -215,9 +215,10 @@ const OVERPASS_ENDPOINTS = [
   "https://overpass.kumi.systems/api/interpreter"
 ];
 
-const SEARCH_RADII_METERS = [500, 1000, 1500];
-const OVERPASS_REQUEST_TIMEOUT_MS = 6_000;
-const OVERPASS_TOTAL_TIMEOUT_MS = 14_000;
+const OVERPASS_SEARCH_RADIUS_METERS = 1500;
+const OVERPASS_QUERY_TIMEOUT_SECONDS = 8;
+const OVERPASS_CLIENT_TIMEOUT_MS = 10_000;
+const OVERPASS_TOTAL_TIMEOUT_MS = 22_000;
 
 const PUBLIC_FACILITY_AMENITIES = new Set([
   "public_building",
@@ -301,7 +302,7 @@ function inferDisplayName(tags: Record<string, string>, isDedicatedToilet: boole
 
 function buildOverpassQuery(location: Coordinates, radiusMeters: number): string {
   return `
-    [out:json][timeout:12];
+    [out:json][timeout:${OVERPASS_QUERY_TIMEOUT_SECONDS}];
     (
       node["amenity"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
       way["amenity"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
@@ -459,73 +460,61 @@ export function generateNearbyFallbackToilets(location: Coordinates): Toilet[] {
 
 export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletFetchResult> {
   const startedAt = Date.now();
+  const query = buildOverpassQuery(location, OVERPASS_SEARCH_RADIUS_METERS);
   const debug: ToiletFetchDebug = {
-    query: buildOverpassQuery(location, SEARCH_RADII_METERS[0]),
+    query,
     attempts: [],
     emptyRadii: []
   };
 
-  for (const radiusMeters of SEARCH_RADII_METERS) {
-    const query = buildOverpassQuery(location, radiusMeters);
-    debug.query = query;
-
-    for (const endpoint of OVERPASS_ENDPOINTS) {
-      const elapsedMs = Date.now() - startedAt;
-      if (elapsedMs >= OVERPASS_TOTAL_TIMEOUT_MS) {
-        debug.fallbackReason = "Overpass API timed out before finding usable toilet candidates within 1500m.";
-        return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback", debug };
-      }
-
-      const controller = new AbortController();
-      const timeoutMs = Math.min(OVERPASS_REQUEST_TIMEOUT_MS, OVERPASS_TOTAL_TIMEOUT_MS - elapsedMs);
-      const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
-
-      try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          body: query,
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "text/plain;charset=UTF-8"
-          }
-        });
-
-        const attempt = {
-          endpoint,
-          radiusMeters,
-          status: response.status
-        };
-
-        if (!response.ok) {
-          debug.attempts.push({ ...attempt, error: `HTTP ${response.status}` });
-          continue;
-        }
-
-        const data = (await response.json()) as { elements?: OverpassElement[] };
-        const rawElements = data.elements ?? [];
-        const toilets = rawElements.map(mapOverpassToToilet).filter((toilet): toilet is Toilet => Boolean(toilet));
-
-        debug.attempts.push({
-          ...attempt,
-          rawElementCount: rawElements.length,
-          mappedToiletCount: toilets.length
-        });
-
-        if (toilets.length > 0) {
-          return { toilets, source: "overpass", debug };
-        }
-      } catch (error) {
-        debug.attempts.push({
-          endpoint,
-          radiusMeters,
-          error: error instanceof Error ? error.message : "Unknown Overpass error"
-        });
-      } finally {
-        window.clearTimeout(timeout);
-      }
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    const elapsedMs = Date.now() - startedAt;
+    if (elapsedMs >= OVERPASS_TOTAL_TIMEOUT_MS) {
+      debug.fallbackReason = "Overpass API timed out before finding usable toilet candidates within 1500m.";
+      return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback", debug };
     }
 
-    debug.emptyRadii.push(radiusMeters);
+    const controller = new AbortController();
+    const timeoutMs = Math.min(OVERPASS_CLIENT_TIMEOUT_MS, OVERPASS_TOTAL_TIMEOUT_MS - elapsedMs);
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: query,
+        signal: controller.signal,
+        headers: { "Content-Type": "text/plain;charset=UTF-8" }
+      });
+
+      const attempt = { endpoint, radiusMeters: OVERPASS_SEARCH_RADIUS_METERS, status: response.status };
+
+      if (!response.ok) {
+        debug.attempts.push({ ...attempt, error: `HTTP ${response.status}` });
+        continue;
+      }
+
+      const data = (await response.json()) as { elements?: OverpassElement[] };
+      const rawElements = data.elements ?? [];
+      const toilets = rawElements.map(mapOverpassToToilet).filter((toilet): toilet is Toilet => Boolean(toilet));
+
+      debug.attempts.push({
+        ...attempt,
+        rawElementCount: rawElements.length,
+        mappedToiletCount: toilets.length
+      });
+
+      if (toilets.length > 0) {
+        return { toilets, source: "overpass", debug };
+      }
+    } catch (error) {
+      debug.attempts.push({
+        endpoint,
+        radiusMeters: OVERPASS_SEARCH_RADIUS_METERS,
+        error: error instanceof Error ? error.message : "Unknown Overpass error"
+      });
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
 
   debug.fallbackReason = "Overpass API returned no usable toilet candidates within 1500m.";
@@ -545,6 +534,7 @@ export function getToiletById(id: string, toilets: Toilet[] = sampleToilets): To
 
 const TOILET_CACHE_KEY = "toilet-finder-last-toilets-v1";
 const TOILET_SEARCH_CACHE_KEY = "toilet-finder-last-search-v1";
+const TOILET_SEARCH_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 
 export function cacheToilets(toilets: Toilet[]) {
   if (typeof window === "undefined") return;
@@ -588,6 +578,9 @@ export function getCachedToiletSearch(): CachedToiletSearch | null {
       typeof parsed.location?.lat !== "number" ||
       typeof parsed.location?.lng !== "number"
     ) {
+      return null;
+    }
+    if (parsed.cachedAt && Date.now() - new Date(parsed.cachedAt).getTime() > TOILET_SEARCH_CACHE_MAX_AGE_MS) {
       return null;
     }
     return parsed;

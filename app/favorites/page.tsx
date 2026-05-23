@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatDistance, googleMapsDirectionsUrl, walkingMinutes, calculateDistanceMeters } from "@/lib/distance";
 import { getFavoriteToilets, onFavoritesUpdated } from "@/lib/favorites";
+import { FAST_GEOLOCATION_OPTIONS } from "@/lib/constants";
 import type { Coordinates, Toilet } from "@/lib/types";
 import { Accessibility, Baby, Clock3, Heart, MapPin, Navigation, Star, Toilet as ToiletIcon } from "lucide-react";
 import Link from "next/link";
@@ -51,7 +52,7 @@ export default function FavoritesPage() {
         setLocationTried(true);
       },
       () => setLocationTried(true),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 }
+      FAST_GEOLOCATION_OPTIONS
     );
   }, []);
 
