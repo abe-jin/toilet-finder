@@ -30,20 +30,20 @@ export const metadata: Metadata = {
     siteName: "ToiNavi",
     images: [
       {
-        url: "/icons/icon-512.png",
-        width: 512,
-        height: 512,
-        alt: "ToiNavi app icon"
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "ToiNavi / 近くのトイレマップ"
       }
     ],
     locale: "ja_JP",
     type: "website"
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "ToiNavi / 近くのトイレマップ",
     description: "現在地から近くのトイレを探せる、レビュー付きのトイレマップアプリです。",
-    images: ["/icons/icon-512.png"]
+    images: ["/og-image.png"]
   }
 };
 

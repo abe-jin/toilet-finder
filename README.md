@@ -340,6 +340,7 @@ lib/
 
 ## 保守メモ
 
+- **OGP画像は `public/og-image.png` を差し替えることで変更できます。** 推奨サイズは 1200×630px です。`app/opengraph-image.tsx` が Next.js の ImageResponse でフォールバック画像を自動生成します。
 - **Nominatim APIへの連続リクエストを避けること。** [Nominatim使用規約](https://operations.osmfoundation.org/policies/nominatim/)では1秒に1リクエスト以内が求められます。`LocationSearch.tsx` では検索完了後1秒以内の再送信をブロックしています。
 - **localStorageのキーは `lib/storage-keys.ts` の `STORAGE_KEYS` で一元管理しています。** 新しいキーを追加する場合はここに定義してください。既存キーの文字列を変えるとユーザーの保存データが消えます。
 - **Supabaseの `secret key`（`service_role`）は絶対に公開しないでください。** アプリで使用するのは `anon public key` のみです。`.env.local` や Vercel の環境変数に設定し、コードやGitHubには含めないでください。
