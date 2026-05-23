@@ -48,8 +48,9 @@ export default function ReviewsPage() {
         if (!active) return;
         setReviews(nextReviews);
         setError(false);
-      } catch {
+      } catch (error) {
         if (!active) return;
+        console.error("[ReviewsPage] Failed to fetch reviews:", error);
         setReviews([]);
         setError(true);
       } finally {
@@ -95,7 +96,7 @@ export default function ReviewsPage() {
           <EmptyState
             icon={AlertCircle}
             title="レビューを取得できませんでした"
-            description="通信状況を確認して、もう一度お試しください。"
+            description="レビューの取得に失敗しました。時間をおいて再度お試しください。"
           />
         ) : null}
 

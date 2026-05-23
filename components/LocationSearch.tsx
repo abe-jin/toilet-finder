@@ -37,7 +37,8 @@ export function LocationSearch({ onResolved, compact = false }: LocationSearchPr
       setHistory(getLocationSearchHistory());
       setQuery(trimmedQuery);
       await onResolved(result, trimmedQuery);
-    } catch {
+    } catch (error) {
+      console.error("[LocationSearch] Geocoding failed:", error);
       setMessage("検索に失敗しました。時間をおいて再度お試しください");
     } finally {
       setSearching(false);

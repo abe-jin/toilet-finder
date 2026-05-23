@@ -51,7 +51,8 @@ export function ReviewForm({ toiletId, onSubmitted }: ReviewFormProps) {
           });
           window.setTimeout(() => setMessage(null), 3200);
           onSubmitted?.();
-        } catch {
+        } catch (error) {
+          console.error("[ReviewForm] Failed to submit review:", error);
           setMessage({
             type: "error",
             text: "レビュー投稿に失敗しました。もう一度お試しください"

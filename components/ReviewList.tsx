@@ -19,8 +19,9 @@ export function ReviewList({ toiletId, refreshKey = 0 }: { toiletId: string; ref
         if (!active) return;
         setReviews(nextReviews);
         setError(false);
-      } catch {
+      } catch (error) {
         if (!active) return;
+        console.error("[ReviewList] Failed to fetch reviews:", error);
         setReviews([]);
         setError(true);
       }
@@ -38,7 +39,7 @@ export function ReviewList({ toiletId, refreshKey = 0 }: { toiletId: string; ref
       <EmptyState
         icon={AlertCircle}
         title="レビューを取得できませんでした"
-        description="通信状況を確認して、もう一度お試しください。"
+        description="レビューの取得に失敗しました。時間をおいて再度お試しください。"
       />
     );
   }

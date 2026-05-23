@@ -1,4 +1,4 @@
-import type { Review, ToiletWithDistance } from "@/lib/types";
+import type { Review, SupabaseReviewRow, ToiletWithDistance } from "@/lib/types";
 import { isSupabaseEnabled, supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = "toilet-finder-reviews-v1";
@@ -113,17 +113,7 @@ export function reviewToSupabaseInsert(review: Review) {
   };
 }
 
-export function supabaseRowToReview(row: {
-  id: string;
-  toilet_id: string;
-  rating: number | null;
-  cleanliness: number;
-  crowding: number;
-  usability: number;
-  facilities: number;
-  comment: string | null;
-  created_at: string;
-}): Review {
+export function supabaseRowToReview(row: SupabaseReviewRow): Review {
   return {
     id: row.id,
     toiletId: row.toilet_id,
