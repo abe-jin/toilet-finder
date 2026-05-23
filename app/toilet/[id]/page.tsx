@@ -52,6 +52,11 @@ export default function ToiletDetailPage() {
   const routeParams = useParams<{ id: string }>();
   const toiletId = Array.isArray(routeParams.id) ? routeParams.id[0] : routeParams.id;
   const [location, setLocation] = useState<Coordinates | null>(null);
+  // refreshKey forces the toilet useMemo to re-run after a review is submitted.
+  // ReviewList already re-fetches via the "toilet-reviews-updated" event, but
+  // the detail page's reviewRating also needs to update — and it reads from
+  // getLocalReviews() inside the memo. Without this counter the rating shown
+  // in the header would stay stale until a page reload.
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {

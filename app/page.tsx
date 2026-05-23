@@ -7,6 +7,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { LocationSearch } from "@/components/LocationSearch";
 import { NearestToiletCard } from "@/components/NearestToiletCard";
 import { ToiletCard } from "@/components/ToiletCard";
+import { UsageGuide } from "@/components/UsageGuide";
 import { Button } from "@/components/ui/Button";
 import { enrichToiletsWithReviews } from "@/lib/reviews";
 import type { GeocodingResult } from "@/lib/geocoding";
@@ -23,18 +24,7 @@ import type {
   ToiletWithDistance
 } from "@/lib/types";
 import { googleMapsDirectionsUrl, withDistance } from "@/lib/distance";
-import {
-  AlertCircle,
-  ChevronDown,
-  Crosshair,
-  HelpCircle,
-  LocateFixed,
-  MapPin,
-  Navigation,
-  Search,
-  ShieldCheck,
-  Toilet as ToiletIcon
-} from "lucide-react";
+import { AlertCircle, Crosshair, LocateFixed, MapPin, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -45,25 +35,6 @@ const manualLocations: { label: string; location: Coordinates }[] = [
 ];
 
 const distanceFilterKeys: FilterKey[] = ["within500m", "within1000m", "within1500m"];
-const USAGE_GUIDE_DISMISSED_KEY = "toinavi-usage-guide-dismissed-v1";
-
-const usageSteps = [
-  {
-    title: "現在地を許可",
-    description: "近くのトイレを自動で探します。",
-    icon: ShieldCheck
-  },
-  {
-    title: "トイレを選ぶ",
-    description: "距離・設備・レビューを確認できます。",
-    icon: ToiletIcon
-  },
-  {
-    title: "経路案内へ",
-    description: "Google Mapsで徒歩ルートを開けます。",
-    icon: Navigation
-  }
-];
 
 function applyFilters(toilets: ToiletWithDistance[], filters: FilterKey[]): ToiletWithDistance[] {
   return toilets.filter((toilet) => {
@@ -89,8 +60,6 @@ export default function HomePage() {
   const [searchLabel, setSearchLabel] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState("現在地を確認中");
   const [showingCachedResult, setShowingCachedResult] = useState(false);
-  const [usageGuideOpen, setUsageGuideOpen] = useState(false);
-  const [usageGuideDismissed, setUsageGuideDismissed] = useState(false);
   const hydratedRef = useRef(false);
 
   useEffect(() => {
@@ -122,8 +91,6 @@ export default function HomePage() {
     hydratedRef.current = true;
 
     window.setTimeout(() => {
-      setUsageGuideDismissed(window.localStorage?.getItem(USAGE_GUIDE_DISMISSED_KEY) === "true");
-
       const cached = getCachedToiletSearch();
       if (!cached) return;
 
@@ -256,62 +223,7 @@ export default function HomePage() {
             </Button>
           </div>
 
-          {!usageGuideDismissed ? (
-            <div className="mt-5 rounded-[26px] bg-white p-3 shadow-sm ring-1 ring-slate-200/80">
-              <button
-                type="button"
-                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[20px] px-2 text-left active:scale-[0.99]"
-                onClick={() => setUsageGuideOpen((value) => !value)}
-              >
-                <span className="flex items-center gap-2 text-sm font-black text-ink">
-                  <HelpCircle size={18} className="text-accent" />
-                  使い方を見る
-                </span>
-                <ChevronDown
-                  size={18}
-                  className={`text-slate-400 transition ${usageGuideOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-              {usageGuideOpen ? (
-                <div className="mt-2 space-y-2">
-                  {usageSteps.map(({ title, icon: Icon }, index) => (
-                    <div key={title} className="flex items-center gap-3 rounded-[20px] bg-slate-50 px-3 py-3 ring-1 ring-slate-200/60">
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[14px] bg-white text-accent shadow-sm">
-                        <Icon size={17} />
-                      </div>
-                      <p className="text-sm font-black text-ink">
-                        {index + 1}. {index === 1 ? "近くのトイレを確認" : title}
-                      </p>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    className="min-h-10 w-full rounded-[18px] text-xs font-black text-slate-500 transition hover:bg-slate-50"
-                    onClick={() => {
-                      window.localStorage?.setItem(USAGE_GUIDE_DISMISSED_KEY, "true");
-                      setUsageGuideDismissed(true);
-                      setUsageGuideOpen(false);
-                    }}
-                  >
-                    今後表示しない
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-black text-slate-600 shadow-sm ring-1 ring-slate-200/80"
-              onClick={() => {
-                window.localStorage?.removeItem(USAGE_GUIDE_DISMISSED_KEY);
-                setUsageGuideDismissed(false);
-                setUsageGuideOpen(true);
-              }}
-            >
-              <HelpCircle size={16} className="text-accent" />
-              使い方
-            </button>
-          )}
+          <UsageGuide />
 
           <div className="mt-5 rounded-[30px] bg-white p-4 shadow-sm ring-1 ring-slate-200/70">
             <p className="text-sm font-bold text-ink">手動で場所を選ぶ</p>
