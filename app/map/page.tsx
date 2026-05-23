@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { LoadingState } from "@/components/LoadingState";
 import { LocationSearch } from "@/components/LocationSearch";
 import { Button } from "@/components/ui/Button";
-import { averageCleanliness, averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
+import { enrichToiletsWithReviews } from "@/lib/reviews";
 import { cacheLocation, getCachedLocation } from "@/lib/location";
 import { cacheToiletSearch, fetchNearbyToilets } from "@/lib/toilets";
 import type { GeocodingResult } from "@/lib/geocoding";
@@ -14,10 +14,10 @@ import type {
   LocationStatus,
   Toilet,
   ToiletDataSource,
-  ToiletFetchDebug,
-  ToiletWithDistance
+  ToiletFetchDebug
 } from "@/lib/types";
 import { calculateDistanceMeters, googleMapsDirectionsUrl, walkingMinutes, withDistance } from "@/lib/distance";
+import { FAST_GEOLOCATION_OPTIONS, MAX_DISPLAY_DISTANCE_METERS } from "@/lib/constants";
 import { AlertCircle, LocateFixed } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
@@ -27,25 +27,7 @@ const ToiletMap = dynamic(() => import("@/components/ToiletMap").then((module) =
   loading: () => <LoadingState label="地図を準備しています" />
 });
 
-const MAX_DISPLAY_DISTANCE_METERS = 1500;
 type SearchMode = "current" | "map-center" | "place";
-const FAST_GEOLOCATION_OPTIONS: PositionOptions = {
-  enableHighAccuracy: false,
-  timeout: 5000,
-  maximumAge: 60_000
-};
-
-function enrichToilets(toilets: ToiletWithDistance[]): ToiletWithDistance[] {
-  const reviews = getStoredReviews();
-  return toilets.map((toilet) => {
-    const toiletReviews = getLocalReviews(toilet.id, reviews);
-    return {
-      ...toilet,
-      reviewRating: averageRating(toiletReviews),
-      cleanlinessAverage: averageCleanliness(toiletReviews)
-    };
-  });
-}
 
 export default function MapPage() {
   const [status, setStatus] = useState<LocationStatus>("loading");
@@ -102,7 +84,7 @@ export default function MapPage() {
     const distanceOrigin = location ?? searchCenter;
     if (!distanceOrigin || !searchCenter) return [];
     const displayDistanceToilets = withDistance(toilets, distanceOrigin);
-    return enrichToilets(
+    return enrichToiletsWithReviews(
       displayDistanceToilets.map((toilet) => {
         const searchDistanceMeters = calculateDistanceMeters(searchCenter, toilet);
         return {

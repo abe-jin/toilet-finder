@@ -1,4 +1,5 @@
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { getCooldownSeconds, isCoolingDown, markCooldownSubmitted } from "@/lib/cooldown";
+import { isSupabaseEnabled, supabase } from "@/lib/supabase";
 import type {
   ConfirmationStatus,
   ToiletConfirmation,
@@ -20,12 +21,6 @@ export type ConfirmationDraft = {
   toiletId: string;
   status: ConfirmationStatus;
 };
-
-type CooldownMap = Record<string, number>;
-
-export function isSupabaseEnabled() {
-  return isSupabaseConfigured && Boolean(supabase);
-}
 
 export function getLocalConfirmations(toiletId?: string): ToiletConfirmation[] {
   if (typeof window === "undefined") return [];
@@ -65,7 +60,7 @@ export function createLocalConfirmation(draft: ConfirmationDraft): ToiletConfirm
 
   const confirmations = getLocalConfirmations();
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify([confirmation, ...confirmations]));
-  markConfirmationSubmitted(draft.toiletId);
+  markCooldownSubmitted(COOLDOWN_STORAGE_KEY, draft.toiletId);
   window.dispatchEvent(new Event("toilet-confirmations-updated"));
   return confirmation;
 }
@@ -96,7 +91,7 @@ export async function createConfirmation(draft: ConfirmationDraft): Promise<Crea
 
   if (error) throw error;
 
-  markConfirmationSubmitted(draft.toiletId);
+  markCooldownSubmitted(COOLDOWN_STORAGE_KEY, draft.toiletId);
   window.dispatchEvent(new Event("toilet-confirmations-updated"));
   return {
     confirmation: data ? supabaseRowToConfirmation(data) : confirmation,
@@ -134,42 +129,12 @@ export function formatLastConfirmed(isoDate?: string) {
   return `最終確認：${date.getMonth() + 1}/${date.getDate()}`;
 }
 
-export function isConfirmationCoolingDown(toiletId: string) {
-  if (typeof window === "undefined") return false;
-  const cooldowns = getCooldowns();
-  const lastSubmittedAt = cooldowns[toiletId];
-  return Boolean(lastSubmittedAt && Date.now() - lastSubmittedAt < COOLDOWN_MS);
+export function isConfirmationCoolingDown(toiletId: string): boolean {
+  return isCoolingDown(COOLDOWN_STORAGE_KEY, toiletId, COOLDOWN_MS);
 }
 
-export function getConfirmationCooldownSeconds(toiletId: string) {
-  if (typeof window === "undefined") return 0;
-  const lastSubmittedAt = getCooldowns()[toiletId];
-  if (!lastSubmittedAt) return 0;
-  return Math.max(0, Math.ceil((COOLDOWN_MS - (Date.now() - lastSubmittedAt)) / 1000));
-}
-
-function markConfirmationSubmitted(toiletId: string) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(
-    COOLDOWN_STORAGE_KEY,
-    JSON.stringify({
-      ...getCooldowns(),
-      [toiletId]: Date.now()
-    })
-  );
-}
-
-function getCooldowns(): CooldownMap {
-  if (typeof window === "undefined") return {};
-
-  try {
-    const raw = window.localStorage.getItem(COOLDOWN_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as CooldownMap;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
+export function getConfirmationCooldownSeconds(toiletId: string): number {
+  return getCooldownSeconds(COOLDOWN_STORAGE_KEY, toiletId, COOLDOWN_MS);
 }
 
 function confirmationToSupabaseInsert(confirmation: ToiletConfirmation) {

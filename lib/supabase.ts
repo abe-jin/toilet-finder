@@ -10,3 +10,7 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
   ? createClient<Database>(supabaseUrl as string, supabaseAnonKey as string)
   : null;
+
+export function isSupabaseEnabled(): boolean {
+  return isSupabaseConfigured && Boolean(supabase);
+}

@@ -8,10 +8,11 @@ import { LocationSearch } from "@/components/LocationSearch";
 import { NearestToiletCard } from "@/components/NearestToiletCard";
 import { ToiletCard } from "@/components/ToiletCard";
 import { Button } from "@/components/ui/Button";
-import { averageCleanliness, averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
+import { enrichToiletsWithReviews } from "@/lib/reviews";
 import type { GeocodingResult } from "@/lib/geocoding";
 import { cacheLocation } from "@/lib/location";
 import { cacheToiletSearch, fetchNearbyToilets, getCachedToiletSearch, sampleToilets } from "@/lib/toilets";
+import { FAST_GEOLOCATION_OPTIONS, MAX_DISPLAY_DISTANCE_METERS } from "@/lib/constants";
 import type {
   Coordinates,
   FilterKey,
@@ -43,14 +44,8 @@ const manualLocations: { label: string; location: Coordinates }[] = [
   { label: "東京駅", location: { lat: 35.68124, lng: 139.76713 } }
 ];
 
-const MAX_DISPLAY_DISTANCE_METERS = 1500;
 const distanceFilterKeys: FilterKey[] = ["within500m", "within1000m", "within1500m"];
 const USAGE_GUIDE_DISMISSED_KEY = "toinavi-usage-guide-dismissed-v1";
-const FAST_GEOLOCATION_OPTIONS: PositionOptions = {
-  enableHighAccuracy: false,
-  timeout: 5000,
-  maximumAge: 60_000
-};
 
 const usageSteps = [
   {
@@ -69,19 +64,6 @@ const usageSteps = [
     icon: Navigation
   }
 ];
-
-function enrichToilets(toilets: ToiletWithDistance[], version = 0): ToiletWithDistance[] {
-  void version;
-  const reviews = getStoredReviews();
-  return toilets.map((toilet) => {
-    const toiletReviews = getLocalReviews(toilet.id, reviews);
-    return {
-      ...toilet,
-      reviewRating: averageRating(toiletReviews),
-      cleanlinessAverage: averageCleanliness(toiletReviews)
-    };
-  });
-}
 
 function applyFilters(toilets: ToiletWithDistance[], filters: FilterKey[]): ToiletWithDistance[] {
   return toilets.filter((toilet) => {
@@ -210,7 +192,8 @@ export default function HomePage() {
 
   const distanceSorted = useMemo(() => {
     if (!location) return [];
-    return enrichToilets(withDistance(toilets, location), reviewVersion);
+    void reviewVersion;
+    return enrichToiletsWithReviews(withDistance(toilets, location));
   }, [location, toilets, reviewVersion]);
 
   const nearbyToilets = useMemo(

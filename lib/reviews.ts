@@ -1,5 +1,5 @@
-import type { Review } from "@/lib/types";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import type { Review, ToiletWithDistance } from "@/lib/types";
+import { isSupabaseEnabled, supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = "toilet-finder-reviews-v1";
 
@@ -11,10 +11,6 @@ export type CreateReviewResult = {
   review: Review;
   storage: ReviewStorageMode;
 };
-
-export function isSupabaseEnabled() {
-  return isSupabaseConfigured && Boolean(supabase);
-}
 
 export function getStoredReviews(): Review[] {
   if (typeof window === "undefined") return [];
@@ -151,4 +147,16 @@ export function averageCleanliness(reviews: Review[]): number | undefined {
   if (reviews.length === 0) return undefined;
   const total = reviews.reduce((sum, review) => sum + review.cleanliness, 0);
   return Number((total / reviews.length).toFixed(1));
+}
+
+export function enrichToiletsWithReviews(toilets: ToiletWithDistance[]): ToiletWithDistance[] {
+  const reviews = getStoredReviews();
+  return toilets.map((toilet) => {
+    const toiletReviews = getLocalReviews(toilet.id, reviews);
+    return {
+      ...toilet,
+      reviewRating: averageRating(toiletReviews),
+      cleanlinessAverage: averageCleanliness(toiletReviews)
+    };
+  });
 }

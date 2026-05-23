@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
   createReport,
-  getReportCooldownSeconds,
-  isSupabaseEnabled
+  getReportCooldownSeconds
 } from "@/lib/reports";
+import { isSupabaseEnabled } from "@/lib/supabase";
 import type { ToiletReportReason } from "@/lib/types";
 import { AlertTriangle, CheckCircle2, ChevronDown, HardDrive, Loader2, Send, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";

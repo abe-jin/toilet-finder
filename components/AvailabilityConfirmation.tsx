@@ -7,9 +7,9 @@ import {
   formatLastConfirmed,
   getConfirmationCooldownSeconds,
   getConfirmations,
-  isSupabaseEnabled,
   summarizeConfirmations
 } from "@/lib/confirmations";
+import { isSupabaseEnabled } from "@/lib/supabase";
 import type { ConfirmationStatus, ToiletConfirmationSummary } from "@/lib/types";
 import { AlertTriangle, CheckCircle2, Clock3, HardDrive, Loader2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";

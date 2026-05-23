@@ -1,4 +1,5 @@
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { getCooldownSeconds, isCoolingDown, markCooldownSubmitted } from "@/lib/cooldown";
+import { isSupabaseEnabled, supabase } from "@/lib/supabase";
 import type { ToiletReport, ToiletReportReason } from "@/lib/types";
 
 const STORAGE_KEY = "toilet-finder-reports-v1";
@@ -17,12 +18,6 @@ export type CreateReportResult = {
   report: ToiletReport;
   storage: ReportStorageMode;
 };
-
-type CooldownMap = Record<string, number>;
-
-export function isSupabaseEnabled() {
-  return isSupabaseConfigured && Boolean(supabase);
-}
 
 export function getLocalReports(toiletId?: string): ToiletReport[] {
   if (typeof window === "undefined") return [];
@@ -48,7 +43,7 @@ export function createLocalReport(draft: ReportDraft): ToiletReport {
 
   const reports = getLocalReports();
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify([report, ...reports]));
-  markReportSubmitted(draft.toiletId);
+  markCooldownSubmitted(COOLDOWN_STORAGE_KEY, draft.toiletId);
   window.dispatchEvent(new Event("toilet-reports-updated"));
   return report;
 }
@@ -75,7 +70,7 @@ export async function createReport(draft: ReportDraft): Promise<CreateReportResu
   const { data, error } = await supabase.from("reports").insert(reportToSupabaseInsert(report)).select("*").single();
   if (error) throw error;
 
-  markReportSubmitted(draft.toiletId);
+  markCooldownSubmitted(COOLDOWN_STORAGE_KEY, draft.toiletId);
   window.dispatchEvent(new Event("toilet-reports-updated"));
   return {
     report: data ? supabaseRowToReport(data) : report,
@@ -83,41 +78,12 @@ export async function createReport(draft: ReportDraft): Promise<CreateReportResu
   };
 }
 
-export function isReportCoolingDown(toiletId: string) {
-  if (typeof window === "undefined") return false;
-  const lastSubmittedAt = getCooldowns()[toiletId];
-  return Boolean(lastSubmittedAt && Date.now() - lastSubmittedAt < COOLDOWN_MS);
+export function isReportCoolingDown(toiletId: string): boolean {
+  return isCoolingDown(COOLDOWN_STORAGE_KEY, toiletId, COOLDOWN_MS);
 }
 
-export function getReportCooldownSeconds(toiletId: string) {
-  if (typeof window === "undefined") return 0;
-  const lastSubmittedAt = getCooldowns()[toiletId];
-  if (!lastSubmittedAt) return 0;
-  return Math.max(0, Math.ceil((COOLDOWN_MS - (Date.now() - lastSubmittedAt)) / 1000));
-}
-
-function markReportSubmitted(toiletId: string) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(
-    COOLDOWN_STORAGE_KEY,
-    JSON.stringify({
-      ...getCooldowns(),
-      [toiletId]: Date.now()
-    })
-  );
-}
-
-function getCooldowns(): CooldownMap {
-  if (typeof window === "undefined") return {};
-
-  try {
-    const raw = window.localStorage.getItem(COOLDOWN_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as CooldownMap;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
+export function getReportCooldownSeconds(toiletId: string): number {
+  return getCooldownSeconds(COOLDOWN_STORAGE_KEY, toiletId, COOLDOWN_MS);
 }
 
 function reportToSupabaseInsert(report: ToiletReport) {

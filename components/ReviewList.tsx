@@ -1,7 +1,8 @@
 "use client";
 
 import { EmptyState } from "@/components/EmptyState";
-import { averageRating, getReviews, isSupabaseEnabled, reviewOverall } from "@/lib/reviews";
+import { averageRating, getReviews, reviewOverall } from "@/lib/reviews";
+import { isSupabaseEnabled } from "@/lib/supabase";
 import type { Review } from "@/lib/types";
 import { AlertCircle, HardDrive, MessageSquare, Star } from "lucide-react";
 import { useEffect, useState } from "react";

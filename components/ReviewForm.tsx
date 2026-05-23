@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { createReview, isSupabaseEnabled } from "@/lib/reviews";
+import { createReview } from "@/lib/reviews";
+import { isSupabaseEnabled } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, HardDrive, Send, Star } from "lucide-react";
 import { useState } from "react";
