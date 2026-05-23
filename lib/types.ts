@@ -174,6 +174,13 @@ export type ToiletFetchResult = {
   debug?: ToiletFetchDebug;
 };
 
+export type CachedToiletSearch = {
+  toilets: Toilet[];
+  location: Coordinates;
+  source: ToiletDataSource;
+  cachedAt: string;
+};
+
 export type FilterKey = "multipurpose" | "open24h" | "rating4" | "within500m" | "within1000m" | "within1500m" | "clean";
 
 export type LocationStatus = "idle" | "loading" | "granted" | "denied" | "error";

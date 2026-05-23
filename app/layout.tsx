@@ -5,11 +5,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://toilet-finder.vercel.app"),
   title: {
-    default: "Toilet Finder / 近くのトイレマップ",
-    template: "%s | Toilet Finder"
+    default: "ToiNavi / 近くのトイレマップ",
+    template: "%s | ToiNavi"
   },
-  description: "現在地から近いトイレをすばやく探せるスマホファーストWebアプリ",
-  applicationName: "Toilet Finder",
+  description: "現在地から近くのトイレを探せる、レビュー付きのトイレマップアプリです。",
+  applicationName: "ToiNavi",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -20,20 +20,20 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Toilet Finder",
+    title: "ToiNavi",
     statusBarStyle: "default"
   },
   openGraph: {
-    title: "Toilet Finder / 近くのトイレマップ",
-    description: "現在地・地名・地図から近くのトイレをすばやく探せるスマホファーストWebアプリ",
+    title: "ToiNavi / 近くのトイレマップ",
+    description: "現在地から近くのトイレを探せる、レビュー付きのトイレマップアプリです。",
     url: "/",
-    siteName: "Toilet Finder",
+    siteName: "ToiNavi",
     images: [
       {
         url: "/icons/icon-512.png",
         width: 512,
         height: 512,
-        alt: "Toilet Finder app icon"
+        alt: "ToiNavi app icon"
       }
     ],
     locale: "ja_JP",
@@ -41,8 +41,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Toilet Finder / 近くのトイレマップ",
-    description: "現在地・地名・地図から近くのトイレをすばやく探せるスマホファーストWebアプリ",
+    title: "ToiNavi / 近くのトイレマップ",
+    description: "現在地から近くのトイレを探せる、レビュー付きのトイレマップアプリです。",
     images: ["/icons/icon-512.png"]
   }
 };

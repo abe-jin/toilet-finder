@@ -7,7 +7,7 @@ import { LocationSearch } from "@/components/LocationSearch";
 import { Button } from "@/components/ui/Button";
 import { averageCleanliness, averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
 import { cacheLocation, getCachedLocation } from "@/lib/location";
-import { cacheToilets, fetchNearbyToilets } from "@/lib/toilets";
+import { cacheToiletSearch, fetchNearbyToilets } from "@/lib/toilets";
 import type { GeocodingResult } from "@/lib/geocoding";
 import type {
   Coordinates,
@@ -29,6 +29,11 @@ const ToiletMap = dynamic(() => import("@/components/ToiletMap").then((module) =
 
 const MAX_DISPLAY_DISTANCE_METERS = 1500;
 type SearchMode = "current" | "map-center" | "place";
+const FAST_GEOLOCATION_OPTIONS: PositionOptions = {
+  enableHighAccuracy: false,
+  timeout: 5000,
+  maximumAge: 60_000
+};
 
 function enrichToilets(toilets: ToiletWithDistance[]): ToiletWithDistance[] {
   const reviews = getStoredReviews();
@@ -65,7 +70,7 @@ export default function MapPage() {
       setToilets(result.toilets);
       setDataSource(result.source);
       setFetchDebug(result.debug);
-      cacheToilets(result.toilets);
+      cacheToiletSearch(result.toilets, nextLocation, result.source);
       setStatus("granted");
     };
 
@@ -89,7 +94,7 @@ export default function MapPage() {
         await loadFromLocation(nextLocation);
       },
       () => setStatus("denied"),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60_000 }
+      FAST_GEOLOCATION_OPTIONS
     );
   }, []);
 
@@ -151,7 +156,7 @@ export default function MapPage() {
       setToilets(result.source === "generated-fallback" ? [] : result.toilets);
       setDataSource(result.source);
       setFetchDebug(result.debug);
-      cacheToilets(result.source === "generated-fallback" ? [] : result.toilets);
+      cacheToiletSearch(result.source === "generated-fallback" ? [] : result.toilets, center, result.source);
     } finally {
       setAreaSearching(false);
     }
@@ -170,7 +175,7 @@ export default function MapPage() {
       setToilets(toiletResult.source === "generated-fallback" ? [] : toiletResult.toilets);
       setDataSource(toiletResult.source);
       setFetchDebug(toiletResult.debug);
-      cacheToilets(toiletResult.source === "generated-fallback" ? [] : toiletResult.toilets);
+      cacheToiletSearch(toiletResult.source === "generated-fallback" ? [] : toiletResult.toilets, center, toiletResult.source);
     } finally {
       setAreaSearching(false);
     }

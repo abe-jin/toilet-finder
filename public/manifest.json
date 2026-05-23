@@ -1,7 +1,7 @@
 {
-  "name": "Toilet Finder / 近くのトイレマップ",
-  "short_name": "Toilet Finder",
-  "description": "現在地・地名・地図から近くのトイレをすばやく探せるスマホファーストWebアプリ",
+  "name": "ToiNavi / 近くのトイレマップ",
+  "short_name": "ToiNavi",
+  "description": "現在地から近くのトイレを探せる、レビュー付きのトイレマップアプリです。",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

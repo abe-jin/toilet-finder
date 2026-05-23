@@ -1,4 +1,12 @@
-import type { Coordinates, Toilet, ToiletFetchResult, ToiletCategory, ToiletFetchDebug } from "@/lib/types";
+import type {
+  CachedToiletSearch,
+  Coordinates,
+  Toilet,
+  ToiletFetchResult,
+  ToiletCategory,
+  ToiletFetchDebug,
+  ToiletDataSource
+} from "@/lib/types";
 
 export const sampleToilets: Toilet[] = [
   {
@@ -208,6 +216,8 @@ const OVERPASS_ENDPOINTS = [
 ];
 
 const SEARCH_RADII_METERS = [500, 1000, 1500];
+const OVERPASS_REQUEST_TIMEOUT_MS = 6_000;
+const OVERPASS_TOTAL_TIMEOUT_MS = 14_000;
 
 const PUBLIC_FACILITY_AMENITIES = new Set([
   "public_building",
@@ -448,6 +458,7 @@ export function generateNearbyFallbackToilets(location: Coordinates): Toilet[] {
 }
 
 export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletFetchResult> {
+  const startedAt = Date.now();
   const debug: ToiletFetchDebug = {
     query: buildOverpassQuery(location, SEARCH_RADII_METERS[0]),
     attempts: [],
@@ -459,8 +470,15 @@ export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletF
     debug.query = query;
 
     for (const endpoint of OVERPASS_ENDPOINTS) {
+      const elapsedMs = Date.now() - startedAt;
+      if (elapsedMs >= OVERPASS_TOTAL_TIMEOUT_MS) {
+        debug.fallbackReason = "Overpass API timed out before finding usable toilet candidates within 1500m.";
+        return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback", debug };
+      }
+
       const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), 12_000);
+      const timeoutMs = Math.min(OVERPASS_REQUEST_TIMEOUT_MS, OVERPASS_TOTAL_TIMEOUT_MS - elapsedMs);
+      const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
 
       try {
         const response = await fetch(endpoint, {
@@ -526,20 +544,54 @@ export function getToiletById(id: string, toilets: Toilet[] = sampleToilets): To
 }
 
 const TOILET_CACHE_KEY = "toilet-finder-last-toilets-v1";
+const TOILET_SEARCH_CACHE_KEY = "toilet-finder-last-search-v1";
 
 export function cacheToilets(toilets: Toilet[]) {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(TOILET_CACHE_KEY, JSON.stringify(toilets));
+  window.sessionStorage?.setItem(TOILET_CACHE_KEY, JSON.stringify(toilets));
+  window.localStorage?.setItem(TOILET_CACHE_KEY, JSON.stringify(toilets));
+}
+
+export function cacheToiletSearch(toilets: Toilet[], location: Coordinates, source: ToiletDataSource) {
+  if (typeof window === "undefined") return;
+  const payload: CachedToiletSearch = {
+    toilets,
+    location,
+    source,
+    cachedAt: new Date().toISOString()
+  };
+  window.localStorage?.setItem(TOILET_SEARCH_CACHE_KEY, JSON.stringify(payload));
+  cacheToilets(toilets);
 }
 
 export function getCachedToilets(): Toilet[] {
   if (typeof window === "undefined") return sampleToilets;
   try {
-    const raw = window.sessionStorage.getItem(TOILET_CACHE_KEY);
+    const raw = window.sessionStorage?.getItem(TOILET_CACHE_KEY) ?? window.localStorage?.getItem(TOILET_CACHE_KEY);
     if (!raw) return sampleToilets;
     const parsed = JSON.parse(raw) as Toilet[];
     return Array.isArray(parsed) && parsed.length > 0 ? parsed : sampleToilets;
   } catch {
     return sampleToilets;
+  }
+}
+
+export function getCachedToiletSearch(): CachedToiletSearch | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage?.getItem(TOILET_SEARCH_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedToiletSearch;
+    if (
+      !Array.isArray(parsed.toilets) ||
+      parsed.toilets.length === 0 ||
+      typeof parsed.location?.lat !== "number" ||
+      typeof parsed.location?.lng !== "number"
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
   }
 }

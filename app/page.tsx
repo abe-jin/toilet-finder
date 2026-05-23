@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { averageCleanliness, averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
 import type { GeocodingResult } from "@/lib/geocoding";
 import { cacheLocation } from "@/lib/location";
-import { cacheToilets, fetchNearbyToilets, sampleToilets } from "@/lib/toilets";
+import { cacheToiletSearch, fetchNearbyToilets, getCachedToiletSearch, sampleToilets } from "@/lib/toilets";
 import type {
   Coordinates,
   FilterKey,
@@ -22,9 +22,20 @@ import type {
   ToiletWithDistance
 } from "@/lib/types";
 import { googleMapsDirectionsUrl, withDistance } from "@/lib/distance";
-import { AlertCircle, Crosshair, LocateFixed, MapPin, Navigation, Search, ShieldCheck, Toilet as ToiletIcon } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronDown,
+  Crosshair,
+  HelpCircle,
+  LocateFixed,
+  MapPin,
+  Navigation,
+  Search,
+  ShieldCheck,
+  Toilet as ToiletIcon
+} from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const manualLocations: { label: string; location: Coordinates }[] = [
   { label: "新宿", location: { lat: 35.69056, lng: 139.69964 } },
@@ -34,6 +45,12 @@ const manualLocations: { label: string; location: Coordinates }[] = [
 
 const MAX_DISPLAY_DISTANCE_METERS = 1500;
 const distanceFilterKeys: FilterKey[] = ["within500m", "within1000m", "within1500m"];
+const USAGE_GUIDE_DISMISSED_KEY = "toinavi-usage-guide-dismissed-v1";
+const FAST_GEOLOCATION_OPTIONS: PositionOptions = {
+  enableHighAccuracy: false,
+  timeout: 5000,
+  maximumAge: 60_000
+};
 
 const usageSteps = [
   {
@@ -88,11 +105,65 @@ export default function HomePage() {
   const [filters, setFilters] = useState<FilterKey[]>(["within1500m"]);
   const [reviewVersion, setReviewVersion] = useState(0);
   const [searchLabel, setSearchLabel] = useState<string | null>(null);
+  const [loadingStep, setLoadingStep] = useState("現在地を確認中");
+  const [showingCachedResult, setShowingCachedResult] = useState(false);
+  const [usageGuideOpen, setUsageGuideOpen] = useState(false);
+  const [usageGuideDismissed, setUsageGuideDismissed] = useState(false);
+  const hydratedRef = useRef(false);
 
   useEffect(() => {
     const onReview = () => setReviewVersion((value) => value + 1);
     window.addEventListener("toilet-reviews-updated", onReview);
     return () => window.removeEventListener("toilet-reviews-updated", onReview);
+  }, []);
+
+  const loadToiletsForLocation = async (
+    nextLocation: Coordinates,
+    options: { label?: string | null } = {}
+  ) => {
+    setLoadingStep("近くのトイレを検索中");
+    setLocation(nextLocation);
+    cacheLocation(nextLocation);
+    const result = await fetchNearbyToilets(nextLocation);
+    setLoadingStep("候補を並び替え中");
+    setToilets(result.toilets);
+    setDataSource(result.source);
+    setFetchDebug(result.debug);
+    cacheToiletSearch(result.toilets, nextLocation, result.source);
+    setShowingCachedResult(false);
+    setStatus("granted");
+    if (options.label !== undefined) setSearchLabel(options.label);
+  };
+
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
+
+    window.setTimeout(() => {
+      setUsageGuideDismissed(window.localStorage?.getItem(USAGE_GUIDE_DISMISSED_KEY) === "true");
+
+      const cached = getCachedToiletSearch();
+      if (!cached) return;
+
+      setLocation(cached.location);
+      setToilets(cached.toilets);
+      setDataSource(cached.source);
+      setStatus("granted");
+      setShowingCachedResult(true);
+
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const nextLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          void loadToiletsForLocation(nextLocation);
+        },
+        () => undefined,
+        FAST_GEOLOCATION_OPTIONS
+      );
+    }, 0);
   }, []);
 
   const locate = () => {
@@ -101,54 +172,40 @@ export default function HomePage() {
       return;
     }
 
+    setLoadingStep("現在地を確認中");
     setStatus("loading");
     setSearchLabel(null);
+    setShowingCachedResult(false);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const nextLocation = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         };
-        setLocation(nextLocation);
-        cacheLocation(nextLocation);
-        const result = await fetchNearbyToilets(nextLocation);
-        setToilets(result.toilets);
-        setDataSource(result.source);
-        setFetchDebug(result.debug);
-        cacheToilets(result.toilets);
-        setStatus("granted");
+        await loadToiletsForLocation(nextLocation, { label: null });
       },
       () => {
         setStatus("denied");
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60_000 }
+      FAST_GEOLOCATION_OPTIONS
     );
   };
 
   const handleManualLocation = async (manualLocation: Coordinates) => {
+    setLoadingStep("近くのトイレを検索中");
     setStatus("loading");
     setSearchLabel(null);
-    setLocation(manualLocation);
-    cacheLocation(manualLocation);
-    const result = await fetchNearbyToilets(manualLocation);
-    setToilets(result.toilets);
-    setDataSource(result.source);
-    setFetchDebug(result.debug);
-    cacheToilets(result.toilets);
-    setStatus("granted");
+    setShowingCachedResult(false);
+    await loadToiletsForLocation(manualLocation, { label: null });
   };
 
   const handleLocationSearch = async (result: GeocodingResult) => {
+    setLoadingStep("近くのトイレを検索中");
     setStatus("loading");
     setSearchLabel(result.label);
+    setShowingCachedResult(false);
     const nextLocation = { lat: result.lat, lng: result.lng };
-    setLocation(nextLocation);
-    const toiletResult = await fetchNearbyToilets(nextLocation);
-    setToilets(toiletResult.toilets);
-    setDataSource(toiletResult.source);
-    setFetchDebug(toiletResult.debug);
-    cacheToilets(toiletResult.toilets);
-    setStatus("granted");
+    await loadToiletsForLocation(nextLocation, { label: result.label });
   };
 
   const distanceSorted = useMemo(() => {
@@ -165,7 +222,9 @@ export default function HomePage() {
   const nearest = filteredToilets[0];
   const closestDistance = nearbyToilets[0]?.distanceMeters;
   const sourceMessage =
-    dataSource === "overpass"
+    showingCachedResult
+      ? "前回の周辺結果を表示中"
+      : dataSource === "overpass"
       ? searchLabel
         ? `${searchLabel}周辺のトイレを表示中`
         : closestDistance !== undefined && closestDistance <= 500
@@ -182,7 +241,7 @@ export default function HomePage() {
       <header className="rounded-b-[30px] bg-white px-4 pb-4 pt-5 shadow-sm ring-1 ring-slate-200/70">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-accent">Toilet Finder</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-accent">ToiNavi</p>
             <h1 className="mt-1 text-[26px] font-black tracking-normal text-ink">近くのトイレマップ</h1>
           </div>
           <Link
@@ -214,30 +273,62 @@ export default function HomePage() {
             </Button>
           </div>
 
-          <div className="mt-5 rounded-[30px] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-accent">How to use</p>
-                <h2 className="mt-1 text-lg font-black text-ink">使い方</h2>
-              </div>
-              <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500">3ステップ</span>
-            </div>
-            <div className="mt-4 space-y-2">
-              {usageSteps.map(({ title, description, icon: Icon }, index) => (
-                <div key={title} className="flex items-center gap-3 rounded-[22px] bg-slate-50 px-3 py-3 ring-1 ring-slate-200/60">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[16px] bg-white text-accent shadow-sm">
-                    <Icon size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-ink">
-                      {index + 1}. {title}
-                    </p>
-                    <p className="mt-0.5 text-xs font-bold leading-5 text-slate-500">{description}</p>
-                  </div>
+          {!usageGuideDismissed ? (
+            <div className="mt-5 rounded-[26px] bg-white p-3 shadow-sm ring-1 ring-slate-200/80">
+              <button
+                type="button"
+                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[20px] px-2 text-left active:scale-[0.99]"
+                onClick={() => setUsageGuideOpen((value) => !value)}
+              >
+                <span className="flex items-center gap-2 text-sm font-black text-ink">
+                  <HelpCircle size={18} className="text-accent" />
+                  使い方を見る
+                </span>
+                <ChevronDown
+                  size={18}
+                  className={`text-slate-400 transition ${usageGuideOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {usageGuideOpen ? (
+                <div className="mt-2 space-y-2">
+                  {usageSteps.map(({ title, icon: Icon }, index) => (
+                    <div key={title} className="flex items-center gap-3 rounded-[20px] bg-slate-50 px-3 py-3 ring-1 ring-slate-200/60">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[14px] bg-white text-accent shadow-sm">
+                        <Icon size={17} />
+                      </div>
+                      <p className="text-sm font-black text-ink">
+                        {index + 1}. {index === 1 ? "近くのトイレを確認" : title}
+                      </p>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="min-h-10 w-full rounded-[18px] text-xs font-black text-slate-500 transition hover:bg-slate-50"
+                    onClick={() => {
+                      window.localStorage?.setItem(USAGE_GUIDE_DISMISSED_KEY, "true");
+                      setUsageGuideDismissed(true);
+                      setUsageGuideOpen(false);
+                    }}
+                  >
+                    今後表示しない
+                  </button>
                 </div>
-              ))}
+              ) : null}
             </div>
-          </div>
+          ) : (
+            <button
+              type="button"
+              className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-black text-slate-600 shadow-sm ring-1 ring-slate-200/80"
+              onClick={() => {
+                window.localStorage?.removeItem(USAGE_GUIDE_DISMISSED_KEY);
+                setUsageGuideDismissed(false);
+                setUsageGuideOpen(true);
+              }}
+            >
+              <HelpCircle size={16} className="text-accent" />
+              使い方
+            </button>
+          )}
 
           <div className="mt-5 rounded-[30px] bg-white p-4 shadow-sm ring-1 ring-slate-200/70">
             <p className="text-sm font-bold text-ink">手動で場所を選ぶ</p>
@@ -254,7 +345,7 @@ export default function HomePage() {
 
       {status === "loading" ? (
         <section className="px-4 pt-8">
-          <LoadingState label={searchLabel ? `${searchLabel}周辺のトイレを探しています` : "現在地周辺のトイレを探しています"} />
+          <LoadingState label={searchLabel ? `${searchLabel}周辺のトイレを探しています` : loadingStep} />
         </section>
       ) : null}
 
@@ -303,6 +394,11 @@ export default function HomePage() {
             </div>
             <div className="rounded-2xl bg-slate-50 px-3 py-2 text-xs font-bold leading-5 text-slate-600 ring-1 ring-slate-200/70">
               {sourceMessage}
+              {showingCachedResult ? (
+                <span className="mt-1 block font-medium text-slate-500">
+                  最新の現在地とトイレ情報をバックグラウンドで更新しています。
+                </span>
+              ) : null}
               {dataSource === "generated-fallback" ? (
                 <span className="mt-1 block font-medium text-slate-500">
                   地図を少し移動するか、手動でエリアを選んでください。確認用データを表示しています。
