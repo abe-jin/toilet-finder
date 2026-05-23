@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { formatDistance, googleMapsDirectionsUrl, walkingMinutes, calculateDistanceMeters } from "@/lib/distance";
 import { getFavoriteToilets, onFavoritesUpdated } from "@/lib/favorites";
 import type { Coordinates, Toilet } from "@/lib/types";
-import { Accessibility, Baby, Heart, MapPin, Navigation, Star, Toilet as ToiletIcon } from "lucide-react";
+import { Accessibility, Baby, Clock3, Heart, MapPin, Navigation, Star, Toilet as ToiletIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -59,7 +59,7 @@ export default function FavoritesPage() {
 
   return (
     <main className="min-h-dvh bg-slate-50 pb-32">
-      <header className="bg-white px-4 pb-4 pt-5 shadow-sm">
+      <header className="rounded-b-[30px] bg-white px-4 pb-4 pt-5 shadow-sm ring-1 ring-slate-200/70">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-accent">Favorites</p>
         <h1 className="mt-2 text-[30px] font-black leading-tight text-ink">お気に入り</h1>
         <p className="mt-2 text-sm font-bold leading-6 text-slate-500">
@@ -86,22 +86,27 @@ export default function FavoritesPage() {
           />
         ) : (
           favoriteToilets.map((toilet) => (
-            <Card key={toilet.id} className="relative p-3.5">
-              <FavoriteButton toilet={toilet} className="absolute right-3 top-3 z-10 shadow-sm" />
-              <Link href={`/toilet/${toilet.id}`} className="block pr-12">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="line-clamp-2 text-[16px] font-black leading-6 text-ink">{toilet.name}</p>
-                    <p className="mt-1 flex items-center gap-1 text-xs text-muted">
-                      <MapPin size={13} className="shrink-0" />
-                      <span className="line-clamp-1">{toilet.address}</span>
-                    </p>
+            <Card key={toilet.id} className="relative overflow-hidden p-0">
+              <FavoriteButton toilet={toilet} className="absolute right-3 top-3 z-10 border-white/80 bg-white/95 shadow-sm" />
+              <Link href={`/toilet/${toilet.id}`} className="block p-4 pr-14">
+                <div className="min-w-0">
+                  <p className="line-clamp-2 text-[16px] font-black leading-6 text-ink">{toilet.name}</p>
+                  <p className="mt-1 flex items-center gap-1 text-xs font-bold text-muted">
+                    <MapPin size={13} className="shrink-0 text-accent" />
+                    <span className="line-clamp-1">{toilet.address}</span>
+                  </p>
+                </div>
+                <div className="mt-3 flex items-center gap-3 rounded-[22px] bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200/60">
+                  <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                    <MapPin size={16} className="shrink-0 text-accent" />
+                    <span className="truncate text-xl font-black leading-none text-ink">{formatDistance(toilet.distanceMeters)}</span>
                   </div>
-                  <div className="shrink-0 rounded-[20px] bg-slate-950 px-3.5 py-2.5 text-right text-white">
-                    <p className="text-lg font-black leading-none">{formatDistance(toilet.distanceMeters)}</p>
-                    <p className="mt-1 text-xs font-black text-teal-200">
+                  <div className="h-7 w-px bg-slate-200" />
+                  <div className="flex min-w-0 flex-1 items-center gap-1.5 text-slate-600">
+                    <Clock3 size={16} className="shrink-0 text-accent" />
+                    <span className="truncate text-sm font-black">
                       {toilet.walkingMinutes ? `徒歩${toilet.walkingMinutes}分` : "現在地待ち"}
-                    </p>
+                    </span>
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2">
@@ -138,8 +143,8 @@ export default function FavoritesPage() {
                   {toilet.amenities.washlet ? <Badge>ウォシュレット</Badge> : null}
                 </div>
               </Link>
-              <a href={googleMapsDirectionsUrl(toilet, location)} target="_blank" rel="noreferrer">
-                <Button className="mt-4 w-full" variant="secondary">
+              <a className="block border-t border-slate-100 p-3 pt-2" href={googleMapsDirectionsUrl(toilet, location)} target="_blank" rel="noreferrer">
+                <Button className="h-12 w-full rounded-[18px]" variant="secondary">
                   <Navigation size={17} />
                   経路案内
                 </Button>

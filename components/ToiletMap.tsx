@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { calculateDistanceMeters, formatDistance, googleMapsDirectionsUrl } from "@/lib/distance";
 import type { Coordinates, ToiletWithDistance } from "@/lib/types";
 import L from "leaflet";
-import { Accessibility, Clock3, Loader2, Navigation, Search, Star } from "lucide-react";
+import { Accessibility, Clock3, Loader2, MapPin, Navigation, Search, Star } from "lucide-react";
 import Link from "next/link";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import { useMapEvents } from "react-leaflet";
@@ -137,35 +137,45 @@ export function ToiletMap({
 
       {selected ? (
         <div className="pointer-events-none absolute inset-x-4 bottom-[104px] z-10">
-          <Card className="pointer-events-auto p-3.5 shadow-soft">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="line-clamp-2 text-[16px] font-black leading-6 text-ink">{selected.name}</p>
-                <p className="mt-1 text-base font-black text-ink">
-                  徒歩{selected.walkingMinutes}分 <span className="text-sm text-muted">{formatDistance(selected.distanceMeters)}</span>
-                </p>
+          <Card className="pointer-events-auto overflow-hidden p-0 shadow-soft">
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="line-clamp-2 text-[16px] font-black leading-6 text-ink">{selected.name}</p>
+                  <div className="mt-2 flex items-center gap-3 rounded-[20px] bg-slate-50 px-3 py-2 ring-1 ring-slate-200/60">
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5 text-lg font-black text-ink">
+                      <MapPin size={15} className="shrink-0 text-accent" />
+                      {formatDistance(selected.distanceMeters)}
+                    </span>
+                    <span className="h-6 w-px bg-slate-200" />
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-black text-slate-600">
+                      <Clock3 size={15} className="shrink-0 text-accent" />
+                      徒歩{selected.walkingMinutes}分
+                    </span>
+                  </div>
+                </div>
+                <div className="shrink-0 rounded-[18px] bg-slate-950 px-3 py-2 text-right text-white">
+                  <p className="flex items-center gap-1 text-sm font-black">
+                    <Star size={14} className="fill-current text-amber-300" />
+                    {(selected.reviewRating ?? selected.rating).toFixed(1)}
+                  </p>
+                  <p className="text-[10px] font-bold text-white/60">評価</p>
+                </div>
+                <FavoriteButton toilet={selected} className="shrink-0" />
               </div>
-              <div className="shrink-0 rounded-[18px] bg-slate-950 px-3 py-2 text-right text-white">
-                <p className="flex items-center gap-1 text-sm font-black">
-                  <Star size={14} className="fill-current text-amber-300" />
-                  {(selected.reviewRating ?? selected.rating).toFixed(1)}
-                </p>
-                <p className="text-[10px] font-bold text-white/60">評価</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-slate-700">
+                <div className="flex items-center gap-1.5 rounded-2xl bg-slate-50 px-3 py-2">
+                  <Clock3 size={14} className="text-accent" />
+                  <span className="truncate">{selected.openingHours}</span>
+                </div>
+                <div className="flex items-center gap-1.5 rounded-2xl bg-slate-50 px-3 py-2">
+                  <Accessibility size={14} className="text-accent" />
+                  <span className="truncate">{selected.amenities.multipurpose ? "多目的あり" : selected.amenities.category}</span>
+                </div>
               </div>
-              <FavoriteButton toilet={selected} className="shrink-0" />
+              <AvailabilityConfirmation toiletId={selected.id} compact className="mt-3" />
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-slate-700">
-              <div className="flex items-center gap-1.5 rounded-2xl bg-slate-50 px-3 py-2">
-                <Clock3 size={14} className="text-accent" />
-                <span className="truncate">{selected.openingHours}</span>
-              </div>
-              <div className="flex items-center gap-1.5 rounded-2xl bg-slate-50 px-3 py-2">
-                <Accessibility size={14} className="text-accent" />
-                <span className="truncate">{selected.amenities.multipurpose ? "多目的あり" : selected.amenities.category}</span>
-              </div>
-            </div>
-            <AvailabilityConfirmation toiletId={selected.id} compact className="mt-3" />
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3">
               <Link href={`/toilet/${selected.id}`}>
                 <Button className="h-[50px] w-full rounded-[20px]" variant="secondary">
                   詳細を見る

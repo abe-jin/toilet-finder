@@ -81,7 +81,7 @@ export default function ToiletDetailPage() {
 
   if (!toilet) {
     return (
-      <main className="min-h-dvh bg-white p-5 pb-28">
+      <main className="min-h-dvh bg-slate-50 p-5 pb-28">
         <EmptyState
           icon={MapPin}
           title="トイレ情報が見つかりません"
@@ -100,7 +100,7 @@ export default function ToiletDetailPage() {
   const rating = toilet.reviewRating ?? toilet.rating;
 
   return (
-    <main className="min-h-dvh bg-white pb-32">
+    <main className="min-h-dvh bg-slate-50 pb-32">
       <header className="rounded-b-[34px] bg-slate-950 px-4 pb-6 pt-5 text-white shadow-soft">
         <Link
           href="/"
@@ -142,7 +142,7 @@ export default function ToiletDetailPage() {
       </header>
 
       <section className="space-y-5 px-4 pt-5">
-        <Card className="p-4">
+        <Card className="overflow-hidden p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-black text-ink">設備情報</h2>
             <Badge>

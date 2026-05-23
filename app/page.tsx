@@ -178,8 +178,8 @@ export default function HomePage() {
         : "現在地が取得できなかったため、サンプルデータを表示しています";
 
   return (
-    <main className="min-h-dvh bg-white pb-32">
-      <header className="px-4 pt-5">
+    <main className="min-h-dvh bg-slate-50 pb-32">
+      <header className="rounded-b-[30px] bg-white px-4 pb-4 pt-5 shadow-sm ring-1 ring-slate-200/70">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-accent">Toilet Finder</p>
@@ -200,7 +200,7 @@ export default function HomePage() {
 
       {status === "idle" ? (
         <section className="px-4 pt-7">
-          <div className="rounded-[34px] bg-slate-950 p-5 text-white shadow-soft">
+          <div className="rounded-[34px] bg-slate-950 p-5 text-white shadow-soft ring-1 ring-slate-900/10">
             <div className="grid h-16 w-16 place-items-center rounded-3xl bg-white/10 text-teal-200">
               <LocateFixed size={34} />
             </div>
@@ -239,7 +239,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-5 rounded-[30px] bg-slate-50 p-4 ring-1 ring-slate-200/70">
+          <div className="mt-5 rounded-[30px] bg-white p-4 shadow-sm ring-1 ring-slate-200/70">
             <p className="text-sm font-bold text-ink">手動で場所を選ぶ</p>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {manualLocations.map((item) => (
