@@ -3,7 +3,16 @@ export type Coordinates = {
   lng: number;
 };
 
-export type ToiletCategory = "コンビニ内" | "公共施設" | "駅" | "公園" | "商業施設";
+export type ToiletCategory =
+  | "公衆トイレ"
+  | "トイレあり施設"
+  | "利用条件あり"
+  | "店舗・施設に確認"
+  | "駅"
+  | "公園"
+  | "公共施設"
+  | "商業施設"
+  | "コンビニ内";
 
 export type ToiletAmenities = {
   genderSeparated: boolean;

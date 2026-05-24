@@ -19,43 +19,71 @@ const OVERPASS_QUERY_TIMEOUT_SECONDS = 8;
 const OVERPASS_CLIENT_TIMEOUT_MS = 10_000;
 const OVERPASS_TOTAL_TIMEOUT_MS = 22_000;
 
-const PUBLIC_FACILITY_AMENITIES = new Set([
-  "public_building",
+// Buildings that indicate private residential use — never display these
+const PRIVATE_BUILDINGS = new Set(["house", "apartments", "detached", "residential"]);
+
+// Amenities where toilet access is typically customer-only
+const CUSTOMER_FACILITY_AMENITIES = new Set([
+  "cafe",
+  "restaurant",
+  "fast_food",
+  "bar",
+  "pub",
+  "fuel"
+]);
+
+// Public institutions where toilets are generally accessible
+const PUBLIC_INSTITUTION_AMENITIES = new Set([
+  "library",
   "townhall",
   "community_centre",
-  "library",
+  "museum",
   "hospital",
   "clinic",
-  "school",
   "university",
   "college",
+  "school",
+  "public_building",
+  "marketplace",
   "bus_station",
   "train_station",
-  "ferry_terminal",
-  "marketplace",
-  "parking"
+  "ferry_terminal"
 ]);
 
 function compactText(value?: string) {
   return value?.trim() || undefined;
 }
 
-function inferPlaceLabel(tags: Record<string, string>): string | undefined {
-  return (
-    compactText(tags.name) ||
-    compactText(tags["name:ja"]) ||
-    compactText(tags.operator) ||
-    compactText(tags.brand) ||
-    compactText(tags["addr:neighbourhood"]) ||
-    compactText(tags["addr:suburb"]) ||
-    compactText(tags["addr:quarter"]) ||
-    compactText(tags["addr:ward"]) ||
-    compactText(tags["addr:city"]) ||
-    compactText(tags["addr:street"])
-  );
+// Returns true when the element should be excluded from display
+function shouldExclude(tags: Record<string, string>): boolean {
+  // Explicitly private or inaccessible
+  const access = tags.access;
+  if (access === "private" || access === "no") return true;
+  const toiletsAccess = tags["toilets:access"];
+  if (toiletsAccess === "private" || toiletsAccess === "no") return true;
+
+  // Private residential buildings
+  if (tags.building && PRIVATE_BUILDINGS.has(tags.building)) return true;
+
+  return false;
 }
 
-function inferCategory(tags: Record<string, string>): ToiletCategory {
+function inferDisplayName(tags: Record<string, string>, isDedicatedToilet: boolean): string {
+  const explicitName = compactText(tags.name) || compactText(tags["name:ja"]);
+
+  if (isDedicatedToilet) {
+    // For dedicated toilets, use the name as-is; fall back to 公衆トイレ
+    return explicitName || "公衆トイレ";
+  }
+
+  // For toilets=yes facilities, always append suffix for clarity
+  return explicitName ? `${explicitName} トイレあり施設` : "トイレあり施設";
+}
+
+function inferCategory(tags: Record<string, string>, isDedicatedToilet: boolean): ToiletCategory {
+  if (isDedicatedToilet) return "公衆トイレ";
+
+  // Transport hubs
   if (
     tags.railway ||
     tags.public_transport ||
@@ -67,36 +95,58 @@ function inferCategory(tags: Record<string, string>): ToiletCategory {
     return "駅";
   }
 
-  if (tags.leisure === "park" || tags.boundary === "national_park" || tags.landuse === "recreation_ground") {
+  // Parks / green spaces
+  if (
+    tags.leisure === "park" ||
+    tags.boundary === "national_park" ||
+    tags.landuse === "recreation_ground"
+  ) {
     return "公園";
   }
 
-  if (tags.shop === "convenience" || tags.brand?.toLowerCase().includes("familymart")) {
-    return "コンビニ内";
+  // Public institutions
+  if (tags.amenity && PUBLIC_INSTITUTION_AMENITIES.has(tags.amenity)) {
+    return "公共施設";
   }
 
+  // Convenience stores — customer-only toilet
+  if (tags.shop === "convenience") return "店舗・施設に確認";
+
+  // Cafes / restaurants / fuel — customer-only
+  if (tags.amenity && CUSTOMER_FACILITY_AMENITIES.has(tags.amenity)) {
+    return "店舗・施設に確認";
+  }
+
+  // Shopping facilities
   if (
     tags.shop ||
-    tags.mall ||
-    tags.tourism === "hotel" ||
-    tags.amenity === "marketplace" ||
+    tags.amenity === "shopping_mall" ||
     tags.building === "retail" ||
-    tags.building === "commercial"
+    tags.building === "commercial" ||
+    tags.building === "shopping_centre"
   ) {
     return "商業施設";
   }
 
-  return "公共施設";
+  // permissive / customers access without more specific category
+  const toiletsAccess = tags["toilets:access"];
+  if (toiletsAccess === "customers" || toiletsAccess === "permissive") {
+    return "利用条件あり";
+  }
+
+  return "トイレあり施設";
 }
 
-function inferDisplayName(tags: Record<string, string>, isDedicatedToilet: boolean, isToiletFacility: boolean) {
-  const explicitName = compactText(tags.name) || compactText(tags["name:ja"]);
-  if (explicitName) return explicitName;
-
-  const placeLabel = inferPlaceLabel(tags);
-  if (isDedicatedToilet) return placeLabel ? `${placeLabel} 公衆トイレ` : "公衆トイレ";
-  if (isToiletFacility) return placeLabel ? `${placeLabel} トイレあり施設` : "トイレあり施設";
-  return placeLabel ? `${placeLabel} 車椅子対応トイレあり施設` : "車椅子対応トイレあり施設";
+// Infer whether the toilet is free to use
+function inferFree(tags: Record<string, string>, isDedicatedToilet: boolean): boolean {
+  if (tags.fee === "yes") return false;
+  if (tags["toilets:access"] === "customers") return false;
+  // Customer-facing commercial facilities — treat as non-free for public
+  if (!isDedicatedToilet) {
+    if (tags.shop === "convenience" || tags.shop === "supermarket") return false;
+    if (tags.amenity && CUSTOMER_FACILITY_AMENITIES.has(tags.amenity)) return false;
+  }
+  return true;
 }
 
 function buildOverpassQuery(location: Coordinates, radiusMeters: number): string {
@@ -110,10 +160,6 @@ function buildOverpassQuery(location: Coordinates, radiusMeters: number): string
       node["toilets"="yes"](around:${radiusMeters},${location.lat},${location.lng});
       way["toilets"="yes"](around:${radiusMeters},${location.lat},${location.lng});
       relation["toilets"="yes"](around:${radiusMeters},${location.lat},${location.lng});
-
-      node["wheelchair"="yes"]["amenity"~"^(public_building|townhall|community_centre|library|hospital|clinic|school|university|college|bus_station|train_station|ferry_terminal|marketplace|parking)$"](around:${radiusMeters},${location.lat},${location.lng});
-      way["wheelchair"="yes"]["amenity"~"^(public_building|townhall|community_centre|library|hospital|clinic|school|university|college|bus_station|train_station|ferry_terminal|marketplace|parking)$"](around:${radiusMeters},${location.lat},${location.lng});
-      relation["wheelchair"="yes"]["amenity"~"^(public_building|townhall|community_centre|library|hospital|clinic|school|university|college|bus_station|train_station|ferry_terminal|marketplace|parking)$"](around:${radiusMeters},${location.lat},${location.lng});
     );
     out center tags;
   `;
@@ -127,16 +173,20 @@ function mapOverpassToToilet(element: OverpassElement): Toilet | null {
   const tags = element.tags ?? {};
   const isDedicatedToilet = tags.amenity === "toilets";
   const isToiletFacility = tags.toilets === "yes";
-  const isPublicWheelchairFacility =
-    tags.wheelchair === "yes" && Boolean(tags.amenity && PUBLIC_FACILITY_AMENITIES.has(tags.amenity));
 
-  if (!isDedicatedToilet && !isToiletFacility && !isPublicWheelchairFacility) return null;
+  // Must have at least one of the two real toilet indicators
+  if (!isDedicatedToilet && !isToiletFacility) return null;
 
-  const name = inferDisplayName(tags, isDedicatedToilet, isToiletFacility);
-  const category = inferCategory(tags);
+  // Exclude private / residential elements
+  if (shouldExclude(tags)) return null;
+
+  const name = inferDisplayName(tags, isDedicatedToilet);
+  const category = inferCategory(tags, isDedicatedToilet);
   const wheelchair = tags.wheelchair === "yes";
   const diaperChanging = tags.changing_table === "yes";
   const open24h = tags.opening_hours === "24/7";
+  const free = inferFree(tags, isDedicatedToilet);
+
   const address =
     tags["addr:full"] ||
     [tags["addr:province"], tags["addr:city"], tags["addr:ward"], tags["addr:street"], tags["addr:housenumber"]]
@@ -161,7 +211,7 @@ function mapOverpassToToilet(element: OverpassElement): Toilet | null {
       wheelchair,
       open24h,
       category,
-      free: tags.fee !== "yes"
+      free
     }
   };
 }
@@ -199,7 +249,7 @@ export function generateNearbyFallbackToilets(location: Coordinates): Toilet[] {
         washlet: false,
         wheelchair: true,
         open24h: false,
-        category: "公共施設",
+        category: "公衆トイレ",
         free: true
       }
     },
@@ -217,7 +267,7 @@ export function generateNearbyFallbackToilets(location: Coordinates): Toilet[] {
         washlet: false,
         wheelchair: false,
         open24h: false,
-        category: "公共施設",
+        category: "公衆トイレ",
         free: true
       }
     },
@@ -235,7 +285,7 @@ export function generateNearbyFallbackToilets(location: Coordinates): Toilet[] {
         washlet: true,
         wheelchair: true,
         open24h: true,
-        category: "公共施設",
+        category: "公衆トイレ",
         free: true
       }
     }

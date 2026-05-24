@@ -357,7 +357,16 @@ export default function HomePage() {
 
       <div id="reviews" />
       <p className="mt-6 px-5 text-center text-xs leading-5 text-slate-400">
-        掲載情報はOpenStreetMap等の公開情報をもとにしています。実際の利用可否や営業時間は現地状況と異なる場合があります。
+        掲載情報はOpenStreetMap等の公開情報をもとにしています。実際の利用可否や営業時間は現地状況と異なる場合があります。店舗・施設の利用条件に従ってください。
+        <br />
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+        >
+          © OpenStreetMap contributors
+        </a>
       </p>
       <BottomNav />
     </main>
