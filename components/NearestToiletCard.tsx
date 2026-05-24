@@ -3,25 +3,27 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatDistance, googleMapsDirectionsUrl } from "@/lib/distance";
 import type { Coordinates, ToiletWithDistance } from "@/lib/types";
-import { Accessibility, ArrowRight, Clock3, MapPinned, Navigation, ShieldCheck, Star } from "lucide-react";
+import { Accessibility, ArrowRight, Clock3, Navigation, ShieldCheck, Star } from "lucide-react";
 import Link from "next/link";
 
 export function NearestToiletCard({ toilet, currentLocation }: { toilet: ToiletWithDistance; currentLocation?: Coordinates | null }) {
   const rating = toilet.reviewRating ?? toilet.rating;
 
   return (
-    <section className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 px-4 pb-4 pt-3 shadow-[0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+    <section className="px-4 pb-5 pt-4">
       <div className="mb-2 flex items-center justify-between px-1">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-accent">一番近いトイレ</p>
-        <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">
-          {toilet.dataKind === "generated" ? "確認用データ" : toilet.dataKind === "candidate" ? "トイレあり施設" : "最短"}
-        </span>
+        <div className="flex items-center gap-2">
+          <FavoriteButton toilet={toilet} />
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">
+            {toilet.dataKind === "generated" ? "確認用データ" : toilet.dataKind === "candidate" ? "トイレあり施設" : "最短"}
+          </span>
+        </div>
       </div>
       <div className="overflow-hidden rounded-[30px] bg-ink text-white shadow-soft ring-1 ring-slate-900/10">
-        <div className="relative p-4 pb-3">
-          <FavoriteButton toilet={toilet} light className="absolute right-4 top-4 z-10" />
+        <div className="p-4 pb-3">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 pr-12">
+            <div className="min-w-0">
               <h2 className="line-clamp-2 text-[21px] font-black leading-7">{toilet.name}</h2>
               <p className="mt-2 line-clamp-2 text-sm font-medium leading-5 text-white/68">{toilet.address}</p>
             </div>
@@ -31,28 +33,21 @@ export function NearestToiletCard({ toilet, currentLocation }: { toilet: ToiletW
             </div>
           </div>
           <div className="mt-4 grid grid-cols-3 gap-2">
-            <div className="rounded-2xl bg-white/10 p-3">
+            <div className="rounded-2xl bg-white/10 px-3 py-2">
               <p className="text-[11px] font-bold text-white/54">評価</p>
               <p className="mt-1 flex items-center gap-1 text-base font-black">
                 <Star size={15} className="fill-current text-amber-300" />
                 {rating.toFixed(1)}
               </p>
             </div>
-            <div className="rounded-2xl bg-white/10 p-3">
+            <div className="rounded-2xl bg-white/10 px-3 py-2">
               <p className="text-[11px] font-bold text-white/54">営業</p>
               <p className="mt-1 truncate text-sm font-black">{toilet.openingHours}</p>
             </div>
-            <div className="rounded-2xl bg-white/10 p-3">
+            <div className="rounded-2xl bg-white/10 px-3 py-2">
               <p className="text-[11px] font-bold text-white/54">設備</p>
               <p className="mt-1 truncate text-sm font-black">{toilet.amenities.multipurpose ? "多目的" : toilet.amenities.category}</p>
             </div>
-          </div>
-          <div className="mt-3 flex items-center justify-between rounded-2xl bg-white px-3 py-2 text-ink">
-            <div className="flex items-center gap-2">
-              <MapPinned size={18} className="text-accent" />
-              <span className="text-sm font-black">徒歩{toilet.walkingMinutes}分</span>
-            </div>
-            <span className="text-sm font-black text-slate-500">{formatDistance(toilet.distanceMeters)}</span>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <Badge className="bg-white/12 text-white">

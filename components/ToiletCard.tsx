@@ -17,10 +17,10 @@ export function ToiletCard({ toilet, compact = false, currentLocation }: ToiletC
   const rating = toilet.reviewRating ?? toilet.rating;
 
   return (
-    <Card className={compact ? "relative overflow-hidden p-0" : "relative overflow-hidden p-0"}>
-      <FavoriteButton toilet={toilet} className="absolute right-3 top-3 z-10 border-white/80 bg-white/95 shadow-sm" />
-      <Link href={`/toilet/${toilet.id}`} className="block p-4 pr-14">
-        <div className="min-w-0">
+    <Card className="overflow-hidden p-0">
+      {/* タイトル行：左＝タグ・名前・住所、右＝ハートボタン */}
+      <div className="flex items-start gap-2 px-4 pt-4">
+        <Link href={`/toilet/${toilet.id}`} className="block min-w-0 flex-1">
           <div className="flex flex-wrap gap-1.5">
             {toilet.dataKind === "generated" ? (
               <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-600">
@@ -37,8 +37,12 @@ export function ToiletCard({ toilet, compact = false, currentLocation }: ToiletC
             <MapPin size={13} className="shrink-0 text-accent" />
             <span className="line-clamp-1">{toilet.address}</span>
           </p>
-        </div>
-        <div className="mt-3 flex items-center gap-3 rounded-[22px] bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200/60">
+        </Link>
+        <FavoriteButton toilet={toilet} className="mt-0.5 shrink-0 border-slate-200 bg-white shadow-sm" />
+      </div>
+      {/* 距離・統計・バッジ行：ハートと重ならない独立エリア */}
+      <Link href={`/toilet/${toilet.id}`} className="block px-4 pb-4 pt-3">
+        <div className="flex items-center gap-3 rounded-[22px] bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200/60">
           <div className="flex min-w-0 flex-1 items-center gap-1.5 text-accent">
             <MapPin size={16} className="shrink-0" />
             <span className="truncate text-xl font-black leading-none text-ink">{formatDistance(toilet.distanceMeters)}</span>
