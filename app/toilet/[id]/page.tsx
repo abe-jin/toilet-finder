@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatDistance, googleMapsDirectionsUrl, withDistance } from "@/lib/distance";
 import { averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
-import { getCachedToilets, getToiletById, sampleToilets } from "@/lib/toilets";
+import { getCachedToilets, getToiletById } from "@/lib/toilets";
 import type { Coordinates, ToiletWithDistance } from "@/lib/types";
 import { FAST_GEOLOCATION_OPTIONS } from "@/lib/constants";
 import {
@@ -72,7 +72,7 @@ export default function ToiletDetailPage() {
   const toilet = useMemo(() => {
     void refreshKey;
     const candidates = getCachedToilets();
-    const found = getToiletById(toiletId, candidates) ?? getToiletById(toiletId, sampleToilets);
+    const found = getToiletById(toiletId, candidates);
     if (!found) return null;
 
     const [withDistanceToilet] = withDistance([found], location ?? fallbackLocation);

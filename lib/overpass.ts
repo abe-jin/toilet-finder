@@ -257,6 +257,8 @@ export function generateNearbyFallbackToilets(location: Coordinates): Toilet[] {
   });
 }
 
+const DEV_SAMPLES_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SAMPLE_TOILETS === "true";
+
 export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletFetchResult> {
   const startedAt = Date.now();
   const query = buildOverpassQuery(location, OVERPASS_SEARCH_RADIUS_METERS);
@@ -270,7 +272,7 @@ export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletF
     const elapsedMs = Date.now() - startedAt;
     if (elapsedMs >= OVERPASS_TOTAL_TIMEOUT_MS) {
       debug.fallbackReason = "Overpass API timed out before finding usable toilet candidates within 1500m.";
-      return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback", debug };
+      return { toilets: DEV_SAMPLES_ENABLED ? generateNearbyFallbackToilets(location) : [], source: "generated-fallback", debug };
     }
 
     const controller = new AbortController();
@@ -317,5 +319,5 @@ export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletF
   }
 
   debug.fallbackReason = "Overpass API returned no usable toilet candidates within 1500m.";
-  return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback", debug };
+  return { toilets: DEV_SAMPLES_ENABLED ? generateNearbyFallbackToilets(location) : [], source: "generated-fallback", debug };
 }

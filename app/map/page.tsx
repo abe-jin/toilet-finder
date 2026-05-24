@@ -49,10 +49,11 @@ export default function MapPage() {
       setSearchLabel(null);
       cacheLocation(nextLocation);
       const result = await fetchNearbyToilets(nextLocation);
-      setToilets(result.toilets);
+      const realToilets = result.source === "generated-fallback" ? [] : result.toilets;
+      setToilets(realToilets);
       setDataSource(result.source);
       setFetchDebug(result.debug);
-      cacheToiletSearch(result.toilets, nextLocation, result.source);
+      cacheToiletSearch(realToilets, nextLocation, result.source);
       setStatus("granted");
     };
 
@@ -207,8 +208,8 @@ export default function MapPage() {
       </div>
       <div className="absolute left-4 right-4 top-[176px] z-20 rounded-2xl bg-white/88 px-3 py-2 text-xs font-bold text-slate-600 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
         {sourceMessage}
-        {dataSource === "generated-fallback" ? (
-          <span className="mt-1 block font-medium text-slate-500">確認用の仮データを表示しています</span>
+        {process.env.NODE_ENV !== "production" && dataSource === "generated-fallback" ? (
+          <span className="mt-1 block font-medium text-slate-500">（開発用）実在トイレなし</span>
         ) : null}
         {process.env.NODE_ENV === "development" ? (
           <span className="ml-2 rounded-full bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500 ring-1 ring-slate-200">

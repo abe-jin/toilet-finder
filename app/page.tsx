@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { enrichToiletsWithReviews } from "@/lib/reviews";
 import type { GeocodingResult } from "@/lib/geocoding";
 import { cacheLocation } from "@/lib/location";
-import { cacheToiletSearch, fetchNearbyToilets, getCachedToiletSearch, sampleToilets } from "@/lib/toilets";
+import { cacheToiletSearch, fetchNearbyToilets, getCachedToiletSearch } from "@/lib/toilets";
 import { FAST_GEOLOCATION_OPTIONS, MAX_DISPLAY_DISTANCE_METERS } from "@/lib/constants";
 import type {
   Coordinates,
@@ -52,8 +52,8 @@ function applyFilters(toilets: ToiletWithDistance[], filters: FilterKey[]): Toil
 export default function HomePage() {
   const [status, setStatus] = useState<LocationStatus>("idle");
   const [location, setLocation] = useState<Coordinates | null>(null);
-  const [toilets, setToilets] = useState<Toilet[]>(sampleToilets);
-  const [dataSource, setDataSource] = useState<ToiletDataSource>("tokyo-sample");
+  const [toilets, setToilets] = useState<Toilet[]>([]);
+  const [dataSource, setDataSource] = useState<ToiletDataSource>("generated-fallback");
   const [fetchDebug, setFetchDebug] = useState<ToiletFetchDebug | undefined>();
   const [filters, setFilters] = useState<FilterKey[]>(["within1500m"]);
   const [reviewVersion, setReviewVersion] = useState(0);
@@ -92,7 +92,8 @@ export default function HomePage() {
 
     window.setTimeout(() => {
       const cached = getCachedToiletSearch();
-      if (!cached) return;
+      // 実在データ（overpass）のキャッシュだけ復元する
+      if (!cached || cached.source !== "overpass") return;
 
       setLocation(cached.location);
       setToilets(cached.toilets);
@@ -182,9 +183,7 @@ export default function HomePage() {
           : closestDistance !== undefined && closestDistance <= 1000
             ? "近くの実在トイレを表示中"
             : "少し離れた実在トイレを表示中"
-      : dataSource === "generated-fallback"
-        ? "近くの実在トイレが見つかりませんでした"
-        : "現在地が取得できなかったため、サンプルデータを表示しています";
+      : "近くの実在トイレが見つかりませんでした";
 
   return (
     <main className="min-h-dvh bg-slate-50 pb-32">
@@ -294,9 +293,9 @@ export default function HomePage() {
                   最新の現在地とトイレ情報をバックグラウンドで更新しています。
                 </span>
               ) : null}
-              {dataSource === "generated-fallback" ? (
+              {dataSource === "generated-fallback" && !showingCachedResult ? (
                 <span className="mt-1 block font-medium text-slate-500">
-                  地図を少し移動するか、手動でエリアを選んでください。確認用データを表示しています。
+                  地図を少し移動するか、駅名・地名で検索してください。
                 </span>
               ) : null}
               {process.env.NODE_ENV === "development" ? (
@@ -333,7 +332,13 @@ export default function HomePage() {
                 </div>
               </details>
             ) : null}
-            {filteredToilets.length > 0 ? (
+            {nearbyToilets.length === 0 ? (
+              <EmptyState
+                icon={MapPin}
+                title="近くの実在トイレが見つかりませんでした"
+                description="地図を少し移動して再検索するか、駅名・地名で検索してください。"
+              />
+            ) : filteredToilets.length > 0 ? (
               <div className="space-y-3">
                 {filteredToilets.map((toilet) => (
                   <ToiletCard key={toilet.id} toilet={toilet} currentLocation={location} />
@@ -351,6 +356,9 @@ export default function HomePage() {
       ) : null}
 
       <div id="reviews" />
+      <p className="mt-6 px-5 text-center text-xs leading-5 text-slate-400">
+        掲載情報はOpenStreetMap等の公開情報をもとにしています。実際の利用可否や営業時間は現地状況と異なる場合があります。
+      </p>
       <BottomNav />
     </main>
   );

@@ -56,7 +56,12 @@ export default function FavoritesPage() {
     );
   }, []);
 
-  const favoriteToilets = useMemo(() => withOptionalDistance(favorites, location), [favorites, location]);
+  const realFavorites = useMemo(
+    () => favorites.filter((t) => t.dataKind !== "generated" && t.dataKind !== "sample"),
+    [favorites]
+  );
+  const excludedFakeCount = favorites.length - realFavorites.length;
+  const favoriteToilets = useMemo(() => withOptionalDistance(realFavorites, location), [realFavorites, location]);
 
   return (
     <main className="min-h-dvh bg-slate-50 pb-32">
@@ -74,6 +79,11 @@ export default function FavoritesPage() {
       </header>
 
       <section className="space-y-3 px-4 pt-4">
+        {excludedFakeCount > 0 ? (
+          <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 ring-1 ring-amber-100">
+            確認用データ {excludedFakeCount}件 を除外しました
+          </p>
+        ) : null}
         {favoriteToilets.length === 0 ? (
           <EmptyState
             icon={Heart}

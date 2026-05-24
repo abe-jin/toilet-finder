@@ -3,6 +3,7 @@ import { STORAGE_KEYS } from "@/lib/storage-keys";
 import type { CachedToiletSearch, Coordinates, Toilet, ToiletDataSource } from "@/lib/types";
 
 const TOILET_CACHE_KEY = STORAGE_KEYS.toiletCache;
+const DEV_SAMPLES_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SAMPLE_TOILETS === "true";
 const TOILET_SEARCH_CACHE_KEY = STORAGE_KEYS.toiletSearchCache;
 const TOILET_SEARCH_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 
@@ -25,14 +26,15 @@ export function cacheToiletSearch(toilets: Toilet[], location: Coordinates, sour
 }
 
 export function getCachedToilets(): Toilet[] {
-  if (typeof window === "undefined") return sampleToilets;
+  const fallback = DEV_SAMPLES_ENABLED ? sampleToilets : [];
+  if (typeof window === "undefined") return fallback;
   try {
     const raw = window.sessionStorage?.getItem(TOILET_CACHE_KEY) ?? window.localStorage?.getItem(TOILET_CACHE_KEY);
-    if (!raw) return sampleToilets;
+    if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Toilet[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : sampleToilets;
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : fallback;
   } catch {
-    return sampleToilets;
+    return fallback;
   }
 }
 
