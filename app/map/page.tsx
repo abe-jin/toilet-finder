@@ -39,7 +39,7 @@ export default function MapPage() {
   const [toilets, setToilets] = useState<Toilet[]>([]);
   const [dataSource, setDataSource] = useState<ToiletDataSource>("generated-fallback");
   const [fetchDebug, setFetchDebug] = useState<ToiletFetchDebug | undefined>();
-  const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadFromLocation = async (nextLocation: Coordinates) => {
@@ -103,7 +103,7 @@ export default function MapPage() {
   const excludedOverLimitCount = mappedToilets.length - nearbyToilets.length;
 
   const selected = useMemo(
-    () => nearbyToilets.find((toilet) => toilet.id === selectedId) ?? nearbyToilets[0],
+    () => selectedId ? nearbyToilets.find((toilet) => toilet.id === selectedId) : undefined,
     [nearbyToilets, selectedId]
   );
   const closestSearchDistance = nearbyToilets[0]?.searchDistanceMeters ?? nearbyToilets[0]?.distanceMeters;
@@ -133,7 +133,7 @@ export default function MapPage() {
     setSearchCenter(center);
     setSearchMode("map-center");
     setSearchLabel(null);
-    setSelectedId(undefined);
+    setSelectedId(null);
     try {
       const result = await fetchNearbyToilets(center);
       setToilets(result.source === "generated-fallback" ? [] : result.toilets);
@@ -152,7 +152,7 @@ export default function MapPage() {
     setSearchCenter(center);
     setSearchMode("place");
     setSearchLabel(result.label);
-    setSelectedId(undefined);
+    setSelectedId(null);
     try {
       const toiletResult = await fetchNearbyToilets(center);
       setToilets(toiletResult.source === "generated-fallback" ? [] : toiletResult.toilets);
@@ -259,6 +259,7 @@ export default function MapPage() {
         toilets={nearbyToilets}
         selectedToilet={selected}
         onSelectToilet={(toilet) => setSelectedId(toilet.id)}
+        onDeselect={() => setSelectedId(null)}
         onSearchArea={(center) => void searchMapArea(center)}
       />
       <BottomNav />
