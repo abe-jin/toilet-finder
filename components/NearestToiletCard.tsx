@@ -71,7 +71,7 @@ export function NearestToiletCard({ toilet, currentLocation }: { toilet: ToiletW
               経路案内
             </Button>
           </a>
-          <Link href={`/toilet/${toilet.id}`}>
+          <Link href={`/toilet?id=${toilet.id}`}>
             <Button variant="secondary" size="icon" aria-label="詳細を見る">
               <ArrowRight size={18} />
             </Button>

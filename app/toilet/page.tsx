@@ -10,6 +10,7 @@ import { ToiletReportForm } from "@/components/ToiletReportForm";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { LoadingState } from "@/components/LoadingState";
 import { formatDistance, googleMapsDirectionsUrl, withDistance } from "@/lib/distance";
 import { averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
 import { getCachedToilets, getToiletById } from "@/lib/toilets";
@@ -30,8 +31,8 @@ import {
   WalletCards
 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 const fallbackLocation = { lat: 35.69056, lng: 139.69964 };
 
@@ -48,15 +49,10 @@ function amenityTags(toilet: ToiletWithDistance) {
   ].filter((item) => item.show);
 }
 
-export default function ToiletDetailPage() {
-  const routeParams = useParams<{ id: string }>();
-  const toiletId = Array.isArray(routeParams.id) ? routeParams.id[0] : routeParams.id;
+function ToiletDetailContent() {
+  const searchParams = useSearchParams();
+  const toiletId = searchParams.get("id") ?? "";
   const [location, setLocation] = useState<Coordinates | null>(null);
-  // refreshKey forces the toilet useMemo to re-run after a review is submitted.
-  // ReviewList already re-fetches via the "toilet-reviews-updated" event, but
-  // the detail page's reviewRating also needs to update — and it reads from
-  // getLocalReviews() inside the memo. Without this counter the rating shown
-  // in the header would stay stale until a page reload.
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -174,5 +170,13 @@ export default function ToiletDetailPage() {
       </section>
       <BottomNav />
     </main>
+  );
+}
+
+export default function ToiletDetailPage() {
+  return (
+    <Suspense fallback={<LoadingState label="読み込み中" />}>
+      <ToiletDetailContent />
+    </Suspense>
   );
 }

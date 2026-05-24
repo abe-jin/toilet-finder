@@ -20,7 +20,7 @@ export function ToiletCard({ toilet, compact = false, currentLocation }: ToiletC
     <Card className="overflow-hidden p-0">
       {/* タイトル行：左＝タグ・名前・住所、右＝ハートボタン */}
       <div className="flex items-start gap-2 px-4 pt-4">
-        <Link href={`/toilet/${toilet.id}`} className="block min-w-0 flex-1">
+        <Link href={`/toilet?id=${toilet.id}`} className="block min-w-0 flex-1">
           <div className="flex flex-wrap gap-1.5">
             {toilet.dataKind === "generated" ? (
               <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-600">
@@ -41,7 +41,7 @@ export function ToiletCard({ toilet, compact = false, currentLocation }: ToiletC
         <FavoriteButton toilet={toilet} className="mt-0.5 shrink-0 border-slate-200 bg-white shadow-sm" />
       </div>
       {/* 距離・統計・バッジ行：ハートと重ならない独立エリア */}
-      <Link href={`/toilet/${toilet.id}`} className="block px-4 pb-4 pt-3">
+      <Link href={`/toilet?id=${toilet.id}`} className="block px-4 pb-4 pt-3">
         <div className="flex items-center gap-3 rounded-[22px] bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200/60">
           <div className="flex min-w-0 flex-1 items-center gap-1.5 text-accent">
             <MapPin size={16} className="shrink-0" />

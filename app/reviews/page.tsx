@@ -132,7 +132,7 @@ export default function ReviewsPage() {
                   <p className="mt-1 break-all text-xs font-bold leading-5 text-slate-500">{review.toiletId}</p>
                 </div>
                 <Link
-                  href={`/toilet/${review.toiletId}`}
+                  href={`/toilet?id=${review.toiletId}`}
                   className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-slate-200 bg-white text-ink shadow-sm active:scale-[0.98]"
                   aria-label="該当トイレ詳細へ"
                 >
@@ -162,7 +162,7 @@ export default function ReviewsPage() {
                 <CalendarDays size={14} />
                 {formatDate(review.createdAt)}
               </time>
-              <Link href={`/toilet/${review.toiletId}`}>
+              <Link href={`/toilet?id=${review.toiletId}`}>
                 <Button variant="secondary" size="sm" className="rounded-full">
                   詳細を見る
                   <ArrowRight size={15} />

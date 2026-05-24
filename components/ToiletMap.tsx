@@ -209,7 +209,7 @@ export function ToiletMap({
 
             {/* Row 3: actions */}
             <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3">
-              <Link href={`/toilet/${selectedToilet.id}`}>
+              <Link href={`/toilet?id=${selectedToilet.id}`}>
                 <Button className="h-11 w-full rounded-[18px]" variant="secondary">
                   詳細を見る
                 </Button>
@@ -297,7 +297,7 @@ export function ToiletMap({
 
             {/* Actions */}
             <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-slate-100 p-3">
-              <Link href={`/toilet/${selectedToilet.id}`}>
+              <Link href={`/toilet?id=${selectedToilet.id}`}>
                 <Button className="h-11 w-full rounded-[18px]" variant="secondary">
                   詳細を見る
                 </Button>
