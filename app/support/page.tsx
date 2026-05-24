@@ -90,7 +90,12 @@ export default function SupportPage() {
 
         <Section title="お問い合わせ">
           <p>ご質問・不具合報告・情報誤りの報告はこちらへ：</p>
-          <p className="font-bold text-slate-500">準備中</p>
+          <a
+            href="mailto:toinavi012@gmail.com"
+            className="font-bold text-accent underline"
+          >
+            toinavi012@gmail.com
+          </a>
         </Section>
 
         <Section title="ご利用上の注意">

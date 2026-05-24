@@ -2,6 +2,15 @@
 
 現在地から近くのトイレを探せる、レビュー付きのトイレマップアプリです。OpenStreetMap / Overpass APIから周辺の公衆トイレを取得し、失敗した場合はサンプルデータにフォールバックします。
 
+## ストア提出情報
+
+| 項目 | 内容 |
+|------|------|
+| Privacy Policy URL | `https://toilet-finder-lovat.vercel.app/privacy` |
+| Support URL | `https://toilet-finder-lovat.vercel.app/support` |
+| Terms URL | `https://toilet-finder-lovat.vercel.app/terms` |
+| Contact | toinavi012@gmail.com |
+
 ## 起動方法
 
 ```bash

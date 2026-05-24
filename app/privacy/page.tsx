@@ -105,7 +105,12 @@ export default function PrivacyPage() {
 
         <Section title="お問い合わせ">
           <p>プライバシーポリシーに関するお問い合わせ先：</p>
-          <p className="font-bold text-slate-500">準備中</p>
+          <a
+            href="mailto:toinavi012@gmail.com"
+            className="font-bold text-accent underline"
+          >
+            toinavi012@gmail.com
+          </a>
         </Section>
       </div>
 

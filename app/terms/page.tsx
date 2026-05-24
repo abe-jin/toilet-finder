@@ -87,6 +87,16 @@ export default function TermsPage() {
           </p>
         </Section>
 
+        <Section title="お問い合わせ">
+          <p>本規約に関するお問い合わせ先：</p>
+          <a
+            href="mailto:toinavi012@gmail.com"
+            className="font-bold text-accent underline"
+          >
+            toinavi012@gmail.com
+          </a>
+        </Section>
+
         <div className="flex gap-3 pb-2">
           <Link
             href="/privacy"
