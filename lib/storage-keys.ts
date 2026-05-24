@@ -1,5 +1,6 @@
 export const STORAGE_KEYS = {
   reviews: "toilet-finder-reviews-v1",
+  reviewCooldowns: "toilet-finder-review-cooldowns-v1",
   confirmations: "toilet-finder-confirmations-v1",
   confirmationCooldowns: "toilet-finder-confirmation-cooldowns-v1",
   reports: "toilet-finder-reports-v1",

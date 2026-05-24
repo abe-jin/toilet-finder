@@ -1,11 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { createReview } from "@/lib/reviews";
+import { createReview, getReviewCooldownSeconds } from "@/lib/reviews";
 import { isSupabaseEnabled } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, HardDrive, Send, Star } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type ReviewFormProps = {
   toiletId: string;
@@ -21,6 +21,8 @@ const fields: { key: ReviewField; label: string; help: string }[] = [
   { key: "equipment", label: "設備", help: "備品・機能" }
 ];
 
+const COMMENT_MAX_LENGTH = 500;
+
 export function ReviewForm({ toiletId, onSubmitted }: ReviewFormProps) {
   const [values, setValues] = useState<Record<ReviewField, number>>({
     cleanliness: 4,
@@ -31,6 +33,15 @@ export function ReviewForm({ toiletId, onSubmitted }: ReviewFormProps) {
   const [comment, setComment] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(() => getReviewCooldownSeconds(toiletId));
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const intervalId = window.setInterval(() => {
+      setCooldownSeconds(getReviewCooldownSeconds(toiletId));
+    }, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [cooldownSeconds, toiletId]);
 
   const setRating = (key: ReviewField, value: number) => {
     setValues((current) => ({ ...current, [key]: value }));
@@ -49,14 +60,19 @@ export function ReviewForm({ toiletId, onSubmitted }: ReviewFormProps) {
             type: "success",
             text: result.storage === "supabase" ? "レビューを投稿しました" : "レビューをこの端末に保存しました"
           });
+          setCooldownSeconds(getReviewCooldownSeconds(toiletId));
           window.setTimeout(() => setMessage(null), 3200);
           onSubmitted?.();
         } catch (error) {
-          console.error("[ReviewForm] Failed to submit review:", error);
+          const isCooldown = error instanceof Error && error.message === "cooldown";
+          if (!isCooldown) console.error("[ReviewForm] Failed to submit review:", error);
           setMessage({
             type: "error",
-            text: "レビュー投稿に失敗しました。もう一度お試しください"
+            text: isCooldown
+              ? "すでにレビューを投稿済みです。時間をおいて再度お試しください。"
+              : "レビュー投稿に失敗しました。もう一度お試しください"
           });
+          setCooldownSeconds(getReviewCooldownSeconds(toiletId));
         } finally {
           setSubmitting(false);
         }
@@ -125,14 +141,25 @@ export function ReviewForm({ toiletId, onSubmitted }: ReviewFormProps) {
           </div>
         </div>
       ))}
-      <textarea
-        value={comment}
-        onChange={(event) => setComment(event.target.value)}
-        rows={4}
-        className="w-full resize-none rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
-        placeholder="混み具合、清潔感、設備の気づきを書く"
-      />
-      <Button className="h-[52px] w-full rounded-[20px]" type="submit" disabled={submitting}>
+      <div>
+        <textarea
+          value={comment}
+          onChange={(event) => setComment(event.target.value)}
+          rows={4}
+          maxLength={COMMENT_MAX_LENGTH}
+          className="w-full resize-none rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+          placeholder="混み具合、清潔感、設備の気づきを書く"
+        />
+        <p className="mt-1 text-right text-xs text-slate-400">
+          {comment.length} / {COMMENT_MAX_LENGTH}
+        </p>
+      </div>
+      {cooldownSeconds > 0 ? (
+        <p className="rounded-2xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-slate-200/70">
+          すでにレビューを投稿済みです。時間をおいて再度お試しください。
+        </p>
+      ) : null}
+      <Button className="h-[52px] w-full rounded-[20px]" type="submit" disabled={submitting || cooldownSeconds > 0}>
         <Send size={17} />
         {submitting ? "投稿中" : "投稿する"}
       </Button>

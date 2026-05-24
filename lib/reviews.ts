@@ -1,8 +1,11 @@
+import { getCooldownSeconds, isCoolingDown, markCooldownSubmitted } from "@/lib/cooldown";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import type { Review, SupabaseReviewRow, ToiletWithDistance } from "@/lib/types";
 import { isSupabaseEnabled, supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = STORAGE_KEYS.reviews;
+const COOLDOWN_STORAGE_KEY = STORAGE_KEYS.reviewCooldowns;
+const COOLDOWN_MS = 30 * 60 * 1000;
 
 export type ReviewDraft = Omit<Review, "id" | "createdAt">;
 
@@ -39,6 +42,7 @@ export function createLocalReview(draft: ReviewDraft): Review {
 
   const reviews = getStoredReviews();
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify([review, ...reviews]));
+  markCooldownSubmitted(COOLDOWN_STORAGE_KEY, draft.toiletId);
   window.dispatchEvent(new Event("toilet-reviews-updated"));
   return review;
 }
@@ -73,6 +77,10 @@ export async function getAllReviews(): Promise<Review[]> {
 }
 
 export async function createReview(draft: ReviewDraft): Promise<CreateReviewResult> {
+  if (isReviewCoolingDown(draft.toiletId)) {
+    throw new Error("cooldown");
+  }
+
   if (!isSupabaseEnabled() || !supabase) {
     return {
       review: createLocalReview(draft),
@@ -89,11 +97,20 @@ export async function createReview(draft: ReviewDraft): Promise<CreateReviewResu
   const { data, error } = await supabase.from("reviews").insert(reviewToSupabaseInsert(review)).select("*").single();
   if (error) throw error;
 
+  markCooldownSubmitted(COOLDOWN_STORAGE_KEY, draft.toiletId);
   window.dispatchEvent(new Event("toilet-reviews-updated"));
   return {
     review: data ? supabaseRowToReview(data) : review,
     storage: "supabase"
   };
+}
+
+export function isReviewCoolingDown(toiletId: string): boolean {
+  return isCoolingDown(COOLDOWN_STORAGE_KEY, toiletId, COOLDOWN_MS);
+}
+
+export function getReviewCooldownSeconds(toiletId: string): number {
+  return getCooldownSeconds(COOLDOWN_STORAGE_KEY, toiletId, COOLDOWN_MS);
 }
 
 export function reviewOverall(review: Review): number {
