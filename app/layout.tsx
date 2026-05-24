@@ -3,7 +3,7 @@ import { NetworkStatus } from "@/components/NetworkStatus";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://toilet-finder.vercel.app"),
+  metadataBase: new URL("https://toilet-finder-lovat.vercel.app"),
   title: {
     default: "ToiNavi / 近くのトイレマップ",
     template: "%s | ToiNavi"
