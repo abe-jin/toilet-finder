@@ -87,17 +87,21 @@ export default function FavoritesPage() {
           />
         ) : (
           favoriteToilets.map((toilet) => (
-            <Card key={toilet.id} className="relative overflow-hidden p-0">
-              <FavoriteButton toilet={toilet} className="absolute right-3 top-3 z-10 border-white/80 bg-white/95 shadow-sm" />
-              <Link href={`/toilet/${toilet.id}`} className="block p-4 pr-14">
-                <div className="min-w-0">
+            <Card key={toilet.id} className="overflow-hidden p-0">
+              {/* タイトル行：左＝名前・住所、右＝ハートボタン */}
+              <div className="flex items-start gap-2 px-4 pt-4">
+                <Link href={`/toilet/${toilet.id}`} className="block min-w-0 flex-1">
                   <p className="line-clamp-2 text-[16px] font-black leading-6 text-ink">{toilet.name}</p>
                   <p className="mt-1 flex items-center gap-1 text-xs font-bold text-muted">
                     <MapPin size={13} className="shrink-0 text-accent" />
                     <span className="line-clamp-1">{toilet.address}</span>
                   </p>
-                </div>
-                <div className="mt-3 flex items-center gap-3 rounded-[22px] bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200/60">
+                </Link>
+                <FavoriteButton toilet={toilet} className="mt-0.5 shrink-0 border-slate-200 bg-white shadow-sm" />
+              </div>
+              {/* 距離・統計・バッジ行：ハートと重ならない独立エリア */}
+              <Link href={`/toilet/${toilet.id}`} className="block px-4 pb-4 pt-3">
+                <div className="flex items-center gap-3 rounded-[22px] bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200/60">
                   <div className="flex min-w-0 flex-1 items-center gap-1.5">
                     <MapPin size={16} className="shrink-0 text-accent" />
                     <span className="truncate text-xl font-black leading-none text-ink">{formatDistance(toilet.distanceMeters)}</span>
