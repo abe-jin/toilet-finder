@@ -13,7 +13,8 @@ import { enrichToiletsWithReviews } from "@/lib/reviews";
 import type { GeocodingResult } from "@/lib/geocoding";
 import { cacheLocation } from "@/lib/location";
 import { cacheToiletSearch, fetchNearbyToilets, getCachedToiletSearch } from "@/lib/toilets";
-import { FAST_GEOLOCATION_OPTIONS, MAX_DISPLAY_DISTANCE_METERS } from "@/lib/constants";
+import { MAX_DISPLAY_DISTANCE_METERS } from "@/lib/constants";
+import { getCurrentLocation, isGeolocationAvailable } from "@/lib/geolocation";
 import type {
   Coordinates,
   FilterKey,
@@ -101,23 +102,14 @@ export default function HomePage() {
       setStatus("granted");
       setShowingCachedResult(true);
 
-      if (!navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const nextLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          void loadToiletsForLocation(nextLocation);
-        },
-        () => undefined,
-        FAST_GEOLOCATION_OPTIONS
+      getCurrentLocation(
+        (nextLocation) => { void loadToiletsForLocation(nextLocation); }
       );
     }, 0);
   }, []);
 
   const locate = () => {
-    if (!navigator.geolocation) {
+    if (!isGeolocationAvailable()) {
       setStatus("error");
       return;
     }
@@ -126,18 +118,13 @@ export default function HomePage() {
     setStatus("loading");
     setSearchLabel(null);
     setShowingCachedResult(false);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const nextLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
+    getCurrentLocation(
+      async (nextLocation) => {
         await loadToiletsForLocation(nextLocation, { label: null });
       },
       () => {
         setStatus("denied");
-      },
-      FAST_GEOLOCATION_OPTIONS
+      }
     );
   };
 

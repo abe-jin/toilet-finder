@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatDistance, googleMapsDirectionsUrl, walkingMinutes, calculateDistanceMeters } from "@/lib/distance";
 import { getFavoriteToilets, onFavoritesUpdated } from "@/lib/favorites";
-import { FAST_GEOLOCATION_OPTIONS } from "@/lib/constants";
+import { getCurrentLocation } from "@/lib/geolocation";
 import type { Coordinates, Toilet } from "@/lib/types";
 import { Accessibility, Baby, Clock3, Heart, MapPin, Navigation, Star, Toilet as ToiletIcon } from "lucide-react";
 import Link from "next/link";
@@ -46,13 +46,12 @@ export default function FavoritesPage() {
   }, []);
 
   useEffect(() => {
-    navigator.geolocation?.getCurrentPosition(
-      (position) => {
-        setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+    getCurrentLocation(
+      (location) => {
+        setLocation(location);
         setLocationTried(true);
       },
-      () => setLocationTried(true),
-      FAST_GEOLOCATION_OPTIONS
+      () => setLocationTried(true)
     );
   }, []);
 

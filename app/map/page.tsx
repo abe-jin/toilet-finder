@@ -17,7 +17,8 @@ import type {
   ToiletFetchDebug
 } from "@/lib/types";
 import { calculateDistanceMeters, googleMapsDirectionsUrl, walkingMinutes, withDistance } from "@/lib/distance";
-import { FAST_GEOLOCATION_OPTIONS, MAX_DISPLAY_DISTANCE_METERS } from "@/lib/constants";
+import { MAX_DISPLAY_DISTANCE_METERS } from "@/lib/constants";
+import { getCurrentLocation, isGeolocationAvailable } from "@/lib/geolocation";
 import { AlertCircle, LocateFixed } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
@@ -63,21 +64,16 @@ export default function MapPage() {
       return;
     }
 
-    if (!navigator.geolocation) {
+    if (!isGeolocationAvailable()) {
       window.setTimeout(() => setStatus("error"), 0);
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const nextLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
+    getCurrentLocation(
+      async (nextLocation) => {
         await loadFromLocation(nextLocation);
       },
-      () => setStatus("denied"),
-      FAST_GEOLOCATION_OPTIONS
+      () => setStatus("denied")
     );
   }, []);
 

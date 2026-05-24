@@ -47,5 +47,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>ToiNaviは、現在地周辺のトイレを検索するために位置情報を使用します。バックグラウンドでの取得は行いません。</string>
 </dict>
 </plist>

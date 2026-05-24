@@ -15,7 +15,7 @@ import { formatDistance, googleMapsDirectionsUrl, withDistance } from "@/lib/dis
 import { averageRating, getLocalReviews, getStoredReviews } from "@/lib/reviews";
 import { getCachedToilets, getToiletById } from "@/lib/toilets";
 import type { Coordinates, ToiletWithDistance } from "@/lib/types";
-import { FAST_GEOLOCATION_OPTIONS } from "@/lib/constants";
+import { getCurrentLocation } from "@/lib/geolocation";
 import {
   Accessibility,
   ArrowLeft,
@@ -56,12 +56,8 @@ function ToiletDetailContent() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    navigator.geolocation?.getCurrentPosition(
-      (position) => {
-        setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
-      },
-      () => undefined,
-      FAST_GEOLOCATION_OPTIONS
+    getCurrentLocation(
+      (location) => { setLocation(location); }
     );
   }, []);
 
