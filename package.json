@@ -9,6 +9,10 @@
     "lint": "eslint . --max-warnings=0"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/ios": "^8.3.4",
     "@supabase/supabase-js": "^2.106.1",
     "@types/leaflet": "^1.9.21",
     "clsx": "^2.1.1",
