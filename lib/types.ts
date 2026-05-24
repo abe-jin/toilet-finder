@@ -166,6 +166,9 @@ export type OverpassAttemptDebug = {
   status?: number;
   rawElementCount?: number;
   mappedToiletCount?: number;
+  noCoordinates?: number;
+  notToiletTag?: number;
+  excludedByFilter?: number;
   error?: string;
 };
 

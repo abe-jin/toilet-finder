@@ -237,7 +237,7 @@ export default function MapPage() {
             {fetchDebug.attempts.map((attempt, index) => (
               <p key={`${attempt.endpoint}-${attempt.radiusMeters}-${index}`}>
                 {attempt.radiusMeters}m {attempt.status ?? "-"} raw:{attempt.rawElementCount ?? "-"} mapped:
-                {attempt.mappedToiletCount ?? "-"} {attempt.error ? `error:${attempt.error}` : ""}
+                {attempt.mappedToiletCount ?? "-"} noCoord:{attempt.noCoordinates ?? "-"} noTag:{attempt.notToiletTag ?? "-"} excluded:{attempt.excludedByFilter ?? "-"}{attempt.error ? ` error:${attempt.error}` : ""}
               </p>
             ))}
             {nearbyToilets.map((toilet) => (

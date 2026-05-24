@@ -56,6 +56,15 @@ function compactText(value?: string) {
 
 // Returns true when the element should be excluded from display
 function shouldExclude(tags: Record<string, string>): boolean {
+  // Dedicated toilet nodes are never excluded — only suppress if access is explicitly private/no
+  if (tags.amenity === "toilets" || tags.building === "toilets") {
+    const access = tags.access;
+    if (access === "private" || access === "no") return true;
+    const toiletsAccess = tags["toilets:access"];
+    if (toiletsAccess === "private" || toiletsAccess === "no") return true;
+    return false;
+  }
+
   // Explicitly private or inaccessible
   const access = tags.access;
   if (access === "private" || access === "no") return true;
@@ -157,6 +166,10 @@ function buildOverpassQuery(location: Coordinates, radiusMeters: number): string
       way["amenity"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
       relation["amenity"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
 
+      node["building"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
+      way["building"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
+      relation["building"="toilets"](around:${radiusMeters},${location.lat},${location.lng});
+
       node["toilets"="yes"](around:${radiusMeters},${location.lat},${location.lng});
       way["toilets"="yes"](around:${radiusMeters},${location.lat},${location.lng});
       relation["toilets"="yes"](around:${radiusMeters},${location.lat},${location.lng});
@@ -171,7 +184,7 @@ function mapOverpassToToilet(element: OverpassElement): Toilet | null {
   if (!lat || !lng) return null;
 
   const tags = element.tags ?? {};
-  const isDedicatedToilet = tags.amenity === "toilets";
+  const isDedicatedToilet = tags.amenity === "toilets" || tags.building === "toilets";
   const isToiletFacility = tags.toilets === "yes";
 
   // Must have at least one of the two real toilet indicators
@@ -346,12 +359,31 @@ export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletF
 
       const data = (await response.json()) as { elements?: OverpassElement[] };
       const rawElements = data.elements ?? [];
-      const toilets = rawElements.map(mapOverpassToToilet).filter((toilet): toilet is Toilet => Boolean(toilet));
+
+      let noCoordinates = 0;
+      let notToiletTag = 0;
+      let excludedByFilter = 0;
+      const toilets: Toilet[] = [];
+      for (const el of rawElements) {
+        const lat = el.lat ?? el.center?.lat;
+        const lng = el.lon ?? el.center?.lon;
+        if (!lat || !lng) { noCoordinates++; continue; }
+        const t = el.tags ?? {};
+        const isDedicated = t.amenity === "toilets" || t.building === "toilets";
+        const isFacility = t.toilets === "yes";
+        if (!isDedicated && !isFacility) { notToiletTag++; continue; }
+        if (shouldExclude(t)) { excludedByFilter++; continue; }
+        const mapped = mapOverpassToToilet(el);
+        if (mapped) toilets.push(mapped);
+      }
 
       debug.attempts.push({
         ...attempt,
         rawElementCount: rawElements.length,
-        mappedToiletCount: toilets.length
+        mappedToiletCount: toilets.length,
+        noCoordinates,
+        notToiletTag,
+        excludedByFilter
       });
 
       if (toilets.length > 0) {

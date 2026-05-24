@@ -323,7 +323,7 @@ export default function HomePage() {
                   {fetchDebug.attempts.map((attempt, index) => (
                     <p key={`${attempt.endpoint}-${attempt.radiusMeters}-${index}`}>
                       {attempt.radiusMeters}m {attempt.status ?? "-"} raw:{attempt.rawElementCount ?? "-"} mapped:
-                      {attempt.mappedToiletCount ?? "-"} {attempt.error ? `error:${attempt.error}` : ""}
+                      {attempt.mappedToiletCount ?? "-"} noCoord:{attempt.noCoordinates ?? "-"} noTag:{attempt.notToiletTag ?? "-"} excluded:{attempt.excludedByFilter ?? "-"}{attempt.error ? ` error:${attempt.error}` : ""}
                     </p>
                   ))}
                   <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-xl bg-black/30 p-2">
