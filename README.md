@@ -81,6 +81,91 @@ npm audit
 - フィルターが動く
 - スマホ幅で下部ナビが押しやすい
 
+## ネイティブアプリ実機テスト手順（Android / iOS）
+
+Capacitorでビルドしたネイティブアプリを、Android Studio または Xcode で実機テストする手順です。
+
+### 共通：Webアプリをビルドしてネイティブに同期する
+
+Webアプリのソースを変更するたびに、以下の手順でビルドと同期が必要です。
+
+```bash
+npm run build        # Next.js を out/ へ静的エクスポート
+npx cap sync         # out/ を ios/android 両方へコピー（または android / ios を指定）
+```
+
+### Android（Windows・Mac 共通）
+
+**前提：** Android Studio がインストール済みであること。
+
+1. Webアプリをビルドして同期します。
+
+   ```bash
+   npm run build
+   npx cap sync android
+   ```
+
+2. Android Studio でプロジェクトを開きます。
+
+   ```bash
+   npx cap open android
+   ```
+
+   `npx cap open android` が失敗する場合（Android Studio が見つからない場合）は、Android Studio から直接 `android/` フォルダを開いてください。
+
+3. Android Studio が起動したら、**Gradle sync** が完了するまで待ちます（初回は数分かかることがあります）。
+
+4. 実機またはエミュレータを選択して ▶ Run を押します。
+
+5. アプリ起動後、以下を確認します。
+
+   - 位置情報の許可ダイアログが表示される（「アプリの使用時のみ許可」を選択）
+   - 現在地周辺のトイレ一覧が表示される
+   - 地図タブで地図とトイレピンが表示される
+   - Google Maps 経路案内リンクが開く
+   - お気に入り・レビュー投稿が動作する
+
+### iOS（Mac 必須）
+
+**前提：** Mac 環境であること。Xcode がインストール済みであること。Apple Developer アカウント（無料プランで実機テスト可能）。
+
+1. Webアプリをビルドして同期します。
+
+   ```bash
+   npm run build
+   npx cap sync ios
+   ```
+
+2. Xcode でプロジェクトを開きます。
+
+   ```bash
+   npx cap open ios
+   ```
+
+3. Xcode が起動したら、左のナビゲーターで `App` ターゲットを選択し、**Signing & Capabilities** を開きます。
+
+   - **Team** に自分の Apple ID を設定します。
+   - Bundle Identifier は `com.toinavi.app` のままでOKです。
+
+4. 実機を USB で接続し、上部のデバイス選択で対象を選んで ▶ Run を押します。
+
+5. 初回実機テストでは、iPhoneの **設定 → 一般 → VPNとデバイス管理** から開発者アプリを信頼してください。
+
+6. アプリ起動後、以下を確認します。
+
+   - 位置情報の許可ダイアログが表示される
+   - 現在地周辺のトイレ一覧が表示される
+   - 地図タブで地図とトイレピンが表示される
+   - Google Maps 経路案内リンクが開く
+   - お気に入り・レビュー投稿が動作する
+
+### 注意事項
+
+- Webアプリのソースを変更した場合は、必ず `npm run build && npx cap sync` を再実行してからネイティブで確認してください。
+- iOS のビルドは Mac 環境が必要です。Windows では Android のみ確認できます。
+- ストアへ提出する前に、App Store Connect / Google Play Console で **署名・証明書の設定** が別途必要です。
+- ストア審査には **アプリアイコン（1024×1024px）** とスクリーンショットが必要です。現在のアイコンはプレースホルダーのため、提出前に差し替えてください。
+
 ## ホーム画面に追加する手順
 
 PWA対応として `manifest.json` と192px/512pxアイコンを用意しています。Vercel公開後のHTTPS URLで確認してください。
@@ -318,7 +403,10 @@ app/
   map/page.tsx
   favorites/page.tsx
   reviews/page.tsx
-  toilet/[id]/page.tsx
+  toilet/page.tsx        # ?id=xxx クエリパラメータでトイレ詳細を表示
+  privacy/page.tsx
+  support/page.tsx
+  terms/page.tsx
 components/
   BottomNav.tsx
   EmptyState.tsx
@@ -338,6 +426,7 @@ lib/
   confirmations.ts
   favorites.ts
   geocoding.ts
+  geolocation.ts         # Capacitor / ブラウザ Geolocation の抽象化
   location.ts
   reports.ts
   reviews.ts
@@ -345,6 +434,8 @@ lib/
   toilets.ts
   types.ts
   utils.ts
+ios/                     # Capacitor iOS プロジェクト
+android/                 # Capacitor Android プロジェクト
 ```
 
 ## 保守メモ
