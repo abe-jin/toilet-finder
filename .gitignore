@@ -30,3 +30,6 @@ Thumbs.db
 
 # Vercel
 .vercel/
+
+# @capacitor/assets generated PWA icons (wrong location, not served by Next.js)
+/icons/
