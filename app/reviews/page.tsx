@@ -9,9 +9,11 @@ import { Card } from "@/components/ui/Card";
 import { getAllReviews, reviewOverall } from "@/lib/reviews";
 import { isSupabaseEnabled } from "@/lib/supabase";
 import type { Review } from "@/lib/types";
-import { AlertCircle, ArrowRight, CalendarDays, HardDrive, MessageSquareText, Sparkles, Star } from "lucide-react";
+import { AlertCircle, ArrowRight, CalendarDays, HardDrive, MapPin, MessageSquareText, Sparkles, Star } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+
+const DISPLAY_LIMIT = 20;
 
 function formatDate(isoDate: string) {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -35,6 +37,72 @@ function ReviewScoreTag({ label, value }: { label: string; value: number }) {
   );
 }
 
+function ReviewCard({ review }: { review: Review }) {
+  return (
+    <Card className="overflow-hidden p-0">
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-base font-black text-amber-700 ring-1 ring-amber-100">
+                <Star size={17} className="fill-current" />
+                {reviewOverall(review).toFixed(1)}
+              </div>
+              <Badge>
+                <Sparkles size={13} className="mr-1" />
+                総合評価
+              </Badge>
+            </div>
+            <div className="mt-3 flex items-center gap-1.5">
+              <MapPin size={13} className="shrink-0 text-slate-400" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-slate-700">公衆トイレ</p>
+                <p className="text-[10px] font-bold text-slate-400">レビュー投稿先</p>
+              </div>
+            </div>
+          </div>
+          <Link
+            href={`/toilet?id=${review.toiletId}`}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-slate-200 bg-white text-ink shadow-sm active:scale-[0.98]"
+            aria-label="該当トイレ詳細へ"
+          >
+            <ArrowRight size={18} />
+          </Link>
+        </div>
+
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          <ReviewScoreTag label="清潔さ" value={review.cleanliness} />
+          <ReviewScoreTag label="混雑度" value={review.crowdLevel} />
+          <ReviewScoreTag label="使いやすさ" value={review.accessibility} />
+          <ReviewScoreTag label="設備" value={review.equipment} />
+        </div>
+
+        <div className="mt-4 rounded-[22px] bg-slate-50 px-3 py-3 ring-1 ring-slate-200/70">
+          <p className="text-xs font-black text-slate-500">コメント</p>
+          {review.comment ? (
+            <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-sm font-bold leading-6 text-slate-700">{review.comment}</p>
+          ) : (
+            <p className="mt-2 text-sm font-bold text-slate-400">コメントなし</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 border-t border-slate-200/80 bg-slate-50/70 px-4 py-3">
+        <time className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+          <CalendarDays size={14} />
+          {formatDate(review.createdAt)}
+        </time>
+        <Link href={`/toilet?id=${review.toiletId}`}>
+          <Button variant="secondary" size="sm" className="rounded-full">
+            詳細を見る
+            <ArrowRight size={15} />
+          </Button>
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
 export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,9 +116,9 @@ export default function ReviewsPage() {
         if (!active) return;
         setReviews(nextReviews);
         setError(false);
-      } catch (error) {
+      } catch (err) {
         if (!active) return;
-        console.error("[ReviewsPage] Failed to fetch reviews:", error);
+        console.error("[ReviewsPage] Failed to fetch reviews:", err);
         setReviews([]);
         setError(true);
       } finally {
@@ -67,19 +135,23 @@ export default function ReviewsPage() {
     };
   }, []);
 
+  const displayReviews = reviews.slice(0, DISPLAY_LIMIT);
+
   return (
     <main className="min-h-dvh bg-slate-50 pb-36">
       <header className="rounded-b-[30px] bg-white px-4 pb-5 pt-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-accent">Reviews</p>
-            <h1 className="mt-2 text-[30px] font-black leading-tight text-ink">レビュー</h1>
+            <h1 className="mt-2 text-[30px] font-black leading-tight text-ink">最近のレビュー</h1>
             <p className="mt-2 text-sm font-bold leading-6 text-slate-500">投稿されたトイレレビューを確認できます</p>
           </div>
-          <div className="shrink-0 rounded-[22px] bg-slate-950 px-3 py-2 text-center text-white">
-            <p className="text-xl font-black leading-none">{reviews.length}</p>
-            <p className="mt-1 text-[10px] font-bold text-white/60">件</p>
-          </div>
+          {!loading && !error ? (
+            <div className="shrink-0 rounded-[22px] bg-slate-950 px-3 py-2 text-center text-white">
+              <p className="text-xl font-black leading-none">{Math.min(reviews.length, DISPLAY_LIMIT)}</p>
+              <p className="mt-1 text-[10px] font-bold text-white/60">件</p>
+            </div>
+          ) : null}
         </div>
         {!isSupabaseEnabled() ? (
           <div className="mt-3 flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-slate-200/70">
@@ -103,8 +175,8 @@ export default function ReviewsPage() {
         {!loading && !error && reviews.length === 0 ? (
           <EmptyState
             icon={MessageSquareText}
-            title="まだレビューはありません"
-            description="トイレ詳細ページからレビューを投稿できます"
+            title="まだレビューがありません"
+            description="トイレ詳細ページからレビューを投稿できます。"
             action={
               <Link href="/">
                 <Button>近くのトイレを探す</Button>
@@ -113,63 +185,8 @@ export default function ReviewsPage() {
           />
         ) : null}
 
-        {reviews.map((review) => (
-          <Card key={review.id} className="overflow-hidden p-0">
-            <div className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-base font-black text-amber-700 ring-1 ring-amber-100">
-                      <Star size={17} className="fill-current" />
-                      {reviewOverall(review).toFixed(1)}
-                    </div>
-                    <Badge>
-                      <Sparkles size={13} className="mr-1" />
-                      総合評価
-                    </Badge>
-                  </div>
-                  <p className="mt-3 text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">toilet_id</p>
-                  <p className="mt-1 break-all text-xs font-bold leading-5 text-slate-500">{review.toiletId}</p>
-                </div>
-                <Link
-                  href={`/toilet?id=${review.toiletId}`}
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-slate-200 bg-white text-ink shadow-sm active:scale-[0.98]"
-                  aria-label="該当トイレ詳細へ"
-                >
-                  <ArrowRight size={18} />
-                </Link>
-              </div>
-
-              <div className="mt-4 grid grid-cols-4 gap-2">
-                <ReviewScoreTag label="清潔さ" value={review.cleanliness} />
-                <ReviewScoreTag label="混雑度" value={review.crowdLevel} />
-                <ReviewScoreTag label="使いやすさ" value={review.accessibility} />
-                <ReviewScoreTag label="設備" value={review.equipment} />
-              </div>
-
-              <div className="mt-4 rounded-[22px] bg-slate-50 px-3 py-3 ring-1 ring-slate-200/70">
-                <p className="text-xs font-black text-slate-500">コメント</p>
-                {review.comment ? (
-                  <p className="mt-2 whitespace-pre-wrap text-sm font-bold leading-6 text-slate-700">{review.comment}</p>
-                ) : (
-                  <p className="mt-2 text-sm font-bold text-slate-400">コメントなし</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 border-t border-slate-200/80 bg-slate-50/70 px-4 py-3">
-              <time className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
-                <CalendarDays size={14} />
-                {formatDate(review.createdAt)}
-              </time>
-              <Link href={`/toilet?id=${review.toiletId}`}>
-                <Button variant="secondary" size="sm" className="rounded-full">
-                  詳細を見る
-                  <ArrowRight size={15} />
-                </Button>
-              </Link>
-            </div>
-          </Card>
+        {displayReviews.map((review) => (
+          <ReviewCard key={review.id} review={review} />
         ))}
       </section>
 
