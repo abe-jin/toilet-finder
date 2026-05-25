@@ -7,7 +7,7 @@ import { LocationSearch } from "@/components/LocationSearch";
 import { Button } from "@/components/ui/Button";
 import { enrichToiletsWithReviews } from "@/lib/reviews";
 import { cacheLocation, getCachedLocation } from "@/lib/location";
-import { cacheToiletSearch, fetchNearbyToilets } from "@/lib/toilets";
+import { cacheToiletSearch, fetchNearbyToilets, getCachedToiletSearch } from "@/lib/toilets";
 import type { GeocodingResult } from "@/lib/geocoding";
 import type {
   Coordinates,
@@ -44,13 +44,13 @@ export default function MapPage() {
 
   useEffect(() => {
     const loadFromLocation = async (nextLocation: Coordinates) => {
+      cacheLocation(nextLocation);
+      const result = await fetchNearbyToilets(nextLocation);
+      const realToilets = result.source === "generated-fallback" ? [] : result.toilets;
       setLocation(nextLocation);
       setSearchCenter(nextLocation);
       setSearchMode("current");
       setSearchLabel(null);
-      cacheLocation(nextLocation);
-      const result = await fetchNearbyToilets(nextLocation);
-      const realToilets = result.source === "generated-fallback" ? [] : result.toilets;
       setToilets(realToilets);
       setDataSource(result.source);
       setFetchDebug(result.debug);
@@ -58,23 +58,38 @@ export default function MapPage() {
       setStatus("granted");
     };
 
-    const cachedLocation = getCachedLocation();
-    if (cachedLocation) {
-      void loadFromLocation(cachedLocation);
-      return;
-    }
+    window.setTimeout(() => {
+      const cached = getCachedToiletSearch();
+      if (cached?.source === "overpass") {
+        setLocation(cached.location);
+        setSearchCenter(cached.location);
+        setSearchMode("current");
+        setToilets(cached.toilets);
+        setDataSource(cached.source);
+        setStatus("granted");
+        getCurrentLocation(
+          (nextLocation) => { void loadFromLocation(nextLocation); },
+          undefined
+        );
+        return;
+      }
 
-    if (!isGeolocationAvailable()) {
-      window.setTimeout(() => setStatus("error"), 0);
-      return;
-    }
+      const cachedLocation = getCachedLocation();
+      if (cachedLocation) {
+        void loadFromLocation(cachedLocation);
+        return;
+      }
 
-    getCurrentLocation(
-      async (nextLocation) => {
-        await loadFromLocation(nextLocation);
-      },
-      () => setStatus("denied")
-    );
+      if (!isGeolocationAvailable()) {
+        setStatus("error");
+        return;
+      }
+
+      getCurrentLocation(
+        (nextLocation) => { void loadFromLocation(nextLocation); },
+        () => setStatus("denied")
+      );
+    }, 0);
   }, []);
 
   const mappedToilets = useMemo(() => {
@@ -97,6 +112,13 @@ export default function MapPage() {
     [mappedToilets]
   );
   const excludedOverLimitCount = mappedToilets.length - nearbyToilets.length;
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    if (status === "granted" && nearbyToilets.length === 0) {
+      console.warn("[MapPage] 0 toilets shown — dataSource:", dataSource, "toilets raw:", toilets.length, "mappedToilets:", mappedToilets.length, "searchCenter:", searchCenter);
+    }
+  }, [status, nearbyToilets.length, dataSource, toilets.length, mappedToilets.length, searchCenter]);
 
   const selected = useMemo(
     () => selectedId ? nearbyToilets.find((toilet) => toilet.id === selectedId) : undefined,
