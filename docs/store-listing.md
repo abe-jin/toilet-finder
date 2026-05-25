@@ -107,6 +107,15 @@ Google Play Console の「データの安全性」セクションへの回答で
 - [x] プライバシーポリシー URL：`https://toilet-finder-lovat.vercel.app/privacy`
 - [x] サポート URL：`https://toilet-finder-lovat.vercel.app/support`
 
+### リリースビルド
+
+- [x] **release AAB 生成済み**
+  - ファイル：`android/app/build/outputs/bundle/release/app-release.aab`
+  - サイズ：約5.4MB（正常範囲）
+  - 生成日：2026-05-25
+  - versionCode: 1 / versionName: 1.0
+  - 署名：upload key（`android/app/release.keystore`、Git 管理外）
+
 ### Console 設定
 
 - [ ] Data Safety セクション回答
@@ -191,9 +200,9 @@ upload key を紛失しても、Play Console の申請で継続可能です。
 
 ## 次のステップ
 
-1. `keytool` で `release.keystore` を生成する（上記 Step 1）
-2. `keystore.properties` を作成する（上記 Step 2）
-3. `.\gradlew.bat bundleRelease` で AAB を生成する（上記 Step 3）
+1. ~~`keytool` で `release.keystore` を生成する~~（完了）
+2. ~~`keystore.properties` を作成する~~（完了）
+3. ~~`.\gradlew.bat bundleRelease` で AAB を生成する~~（完了・約5.4MB）
 4. Google Play Console でアプリを登録する
 5. 内部テストトラックに AAB をアップロードする
 6. クローズドテスト（12人以上 × 14日間）を実施する
