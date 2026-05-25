@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { getAllReviews, reviewOverall } from "@/lib/reviews";
 import { isSupabaseEnabled } from "@/lib/supabase";
-import type { Review } from "@/lib/types";
+import type { Coordinates, Review } from "@/lib/types";
+import { calculateDistanceMeters } from "@/lib/distance";
+import { getCachedLocation } from "@/lib/location";
+import { getCachedToiletSearch } from "@/lib/toilets";
 import { AlertCircle, ArrowRight, CalendarDays, HardDrive, MapPin, MessageSquareText, Sparkles, Star } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const DISPLAY_LIMIT = 20;
 
@@ -23,6 +26,10 @@ function formatDate(isoDate: string) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(isoDate));
+}
+
+function formatDistance(meters: number): string {
+  return meters < 1000 ? `${Math.round(meters)}m` : `${(meters / 1000).toFixed(1)}km`;
 }
 
 function ReviewScoreTag({ label, value }: { label: string; value: number }) {
@@ -37,7 +44,11 @@ function ReviewScoreTag({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ReviewCard({ review }: { review: Review }) {
+function ReviewCard({ review, distanceMeters }: { review: Review; distanceMeters?: number }) {
+  const distLabel = distanceMeters !== undefined && isFinite(distanceMeters)
+    ? formatDistance(distanceMeters)
+    : null;
+
   return (
     <Card className="overflow-hidden p-0">
       <div className="p-4">
@@ -55,8 +66,15 @@ function ReviewCard({ review }: { review: Review }) {
             </div>
             <div className="mt-3 flex items-center gap-1.5">
               <MapPin size={13} className="shrink-0 text-slate-400" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-slate-700">公衆トイレ</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-sm font-bold text-slate-700">公衆トイレ</p>
+                  {distLabel ? (
+                    <span className="shrink-0 rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-teal-600 ring-1 ring-teal-100">
+                      {distLabel}
+                    </span>
+                  ) : null}
+                </div>
                 <p className="text-[10px] font-bold text-slate-400">レビュー投稿先</p>
               </div>
             </div>
@@ -107,6 +125,8 @@ export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [location, setLocation] = useState<Coordinates | null>(null);
+  const [toiletCoords, setToiletCoords] = useState<Map<string, Coordinates>>(new Map());
 
   useEffect(() => {
     let active = true;
@@ -135,7 +155,30 @@ export default function ReviewsPage() {
     };
   }, []);
 
-  const displayReviews = reviews.slice(0, DISPLAY_LIMIT);
+  useEffect(() => {
+    window.setTimeout(() => {
+      const cachedLoc = getCachedLocation();
+      if (cachedLoc) setLocation(cachedLoc);
+
+      const cached = getCachedToiletSearch();
+      if (cached) {
+        setToiletCoords(new Map(cached.toilets.map((t) => [t.id, { lat: t.lat, lng: t.lng }])));
+      }
+    }, 0);
+  }, []);
+
+  const displayReviews = useMemo(() => {
+    if (!location) return reviews.slice(0, DISPLAY_LIMIT);
+    return [...reviews]
+      .sort((a, b) => {
+        const ca = toiletCoords.get(a.toiletId);
+        const cb = toiletCoords.get(b.toiletId);
+        const da = ca ? calculateDistanceMeters(location, ca) : Infinity;
+        const db = cb ? calculateDistanceMeters(location, cb) : Infinity;
+        return da - db;
+      })
+      .slice(0, DISPLAY_LIMIT);
+  }, [reviews, location, toiletCoords]);
 
   return (
     <main className="min-h-dvh bg-slate-50 pb-36">
@@ -144,7 +187,9 @@ export default function ReviewsPage() {
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-accent">Reviews</p>
             <h1 className="mt-2 text-[30px] font-black leading-tight text-ink">最近のレビュー</h1>
-            <p className="mt-2 text-sm font-bold leading-6 text-slate-500">投稿されたトイレレビューを確認できます</p>
+            <p className="mt-2 text-sm font-bold leading-6 text-slate-500">
+              {location ? "近くのトイレを優先して表示しています" : "投稿されたトイレレビューを確認できます"}
+            </p>
           </div>
           {!loading && !error ? (
             <div className="shrink-0 rounded-[22px] bg-slate-950 px-3 py-2 text-center text-white">
@@ -185,9 +230,11 @@ export default function ReviewsPage() {
           />
         ) : null}
 
-        {displayReviews.map((review) => (
-          <ReviewCard key={review.id} review={review} />
-        ))}
+        {displayReviews.map((review) => {
+          const coords = toiletCoords.get(review.toiletId);
+          const dist = coords && location ? calculateDistanceMeters(location, coords) : undefined;
+          return <ReviewCard key={review.id} review={review} distanceMeters={dist} />;
+        })}
       </section>
 
       <BottomNav />
