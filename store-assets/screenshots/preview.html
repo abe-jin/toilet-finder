@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ToiNavi – Google Play スクリーンショット確認</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 32px 16px 64px;
+    }
+    h1 { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: #64748b; margin-bottom: 32px; }
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      justify-content: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      padding: 16px;
+      width: 240px;
+      flex-shrink: 0;
+    }
+    .card.warn { outline: 3px solid #f59e0b; }
+    .card.ok   { outline: 3px solid #10b981; }
+    .order {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+    .filename {
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .meta {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+    .status {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+    .status.ok   { background: #d1fae5; color: #065f46; }
+    .status.warn { background: #fef3c7; color: #92400e; }
+    .issues {
+      font-size: 11px;
+      color: #92400e;
+      background: #fef9c3;
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    .issues li { margin-left: 14px; }
+    .thumb {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      display: block;
+    }
+    hr { border: none; border-top: 1px solid #e2e8f0; margin: 32px 0; }
+    .summary {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px 24px;
+      max-width: 600px;
+      margin: 0 auto 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .summary h2 { font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+    .summary table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .summary th { text-align: left; font-weight: 700; color: #64748b; padding: 4px 8px; }
+    .summary td { padding: 4px 8px; }
+    .summary tr:not(:last-child) td { border-bottom: 1px solid #f1f5f9; }
+    .badge-ok   { color: #10b981; font-weight: 800; }
+    .badge-warn { color: #f59e0b; font-weight: 800; }
+  </style>
+</head>
+<body>
+
+<h1>ToiNavi – Google Play スクリーンショット確認</h1>
+<p class="subtitle">store-assets/screenshots/ のプレビュー｜アップロード推奨順で表示</p>
+
+<div class="summary">
+  <h2>確認サマリー</h2>
+  <table>
+    <thead>
+      <tr><th>#</th><th>ファイル</th><th>サイズ</th><th>容量</th><th>判定</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>home.png</td><td>1080×2400</td><td>238KB</td><td class="badge-ok">✓ OK</td></tr>
+      <tr><td>2</td><td>map.png</td><td>1080×2400</td><td>2176KB</td><td class="badge-ok">✓ OK</td></tr>
+      <tr><td>3</td><td>detail.png</td><td>1080×2400</td><td>209KB</td><td class="badge-ok">✓ OK</td></tr>
+      <tr><td>4</td><td>favorites.png</td><td>1080×2400</td><td>235KB</td><td class="badge-ok">✓ OK</td></tr>
+      <tr><td>5</td><td>reviews.png</td><td>1080×2400</td><td>181KB</td><td class="badge-warn">⚠ 要再撮影</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="grid">
+
+  <div class="card ok">
+    <p class="order">No.1 – アップロード推奨順</p>
+    <p class="filename">home.png</p>
+    <p class="meta">1080×2400 px｜238KB</p>
+    <span class="status ok">✓ OK</span>
+    <img src="home.png" alt="home" class="thumb" />
+  </div>
+
+  <div class="card ok">
+    <p class="order">No.2 – アップロード推奨順</p>
+    <p class="filename">map.png</p>
+    <p class="meta">1080×2400 px｜2176KB</p>
+    <span class="status ok">✓ OK</span>
+    <img src="map.png" alt="map" class="thumb" />
+  </div>
+
+  <div class="card ok">
+    <p class="order">No.3 – アップロード推奨順</p>
+    <p class="filename">detail.png</p>
+    <p class="meta">1080×2400 px｜209KB</p>
+    <span class="status ok">✓ OK</span>
+    <img src="detail.png" alt="detail" class="thumb" />
+  </div>
+
+  <div class="card ok">
+    <p class="order">No.4 – アップロード推奨順</p>
+    <p class="filename">favorites.png</p>
+    <p class="meta">1080×2400 px｜235KB</p>
+    <span class="status ok">✓ OK</span>
+    <img src="favorites.png" alt="favorites" class="thumb" />
+  </div>
+
+  <div class="card warn">
+    <p class="order">No.5 – アップロード推奨順</p>
+    <p class="filename">reviews.png</p>
+    <p class="meta">1080×2400 px｜181KB</p>
+    <span class="status warn">⚠ 要再撮影</span>
+    <ul class="issues">
+      <li>見出しが旧UI「レビュー」（新:「最近のレビュー」）</li>
+      <li>TOILET_ID / osm-node-xxx が表示されている（修正済み機能未反映）</li>
+      <li>レビュー1件・下半分が空白でGoogle Play用として弱い</li>
+    </ul>
+    <img src="reviews.png" alt="reviews" class="thumb" />
+  </div>
+
+</div>
+
+<hr />
+<p style="text-align:center; font-size:12px; color:#94a3b8;">
+  再撮影手順: エミュレーターにAPKを再インストール → npm run shot:reviews
+</p>
+
+</body>
+</html>
