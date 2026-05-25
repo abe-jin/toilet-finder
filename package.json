@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --max-warnings=0"
+    "lint": "eslint . --max-warnings=0",
+    "shot:home": "powershell -ExecutionPolicy Bypass -File scripts/capture-screenshot.ps1 home",
+    "shot:map": "powershell -ExecutionPolicy Bypass -File scripts/capture-screenshot.ps1 map",
+    "shot:detail": "powershell -ExecutionPolicy Bypass -File scripts/capture-screenshot.ps1 detail",
+    "shot:favorites": "powershell -ExecutionPolicy Bypass -File scripts/capture-screenshot.ps1 favorites",
+    "shot:reviews": "powershell -ExecutionPolicy Bypass -File scripts/capture-screenshot.ps1 reviews"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
