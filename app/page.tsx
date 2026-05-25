@@ -25,7 +25,7 @@ import type {
   ToiletWithDistance
 } from "@/lib/types";
 import { googleMapsDirectionsUrl, withDistance } from "@/lib/distance";
-import { AlertCircle, Crosshair, LocateFixed, MapPin, Search } from "lucide-react";
+import { AlertCircle, Crosshair, LocateFixed, Map, MapPin, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -74,14 +74,17 @@ export default function HomePage() {
     options: { label?: string | null } = {}
   ) => {
     setLoadingStep("近くのトイレを検索中");
-    setLocation(nextLocation);
     cacheLocation(nextLocation);
     const result = await fetchNearbyToilets(nextLocation);
-    setLoadingStep("候補を並び替え中");
-    setToilets(result.toilets);
+    // location と toilets を同じ React レンダーサイクルで更新する。
+    // setLocation を fetch 前に呼ぶと「location=新座標・toilets=旧キャッシュ」の
+    // 中間状態が生まれ、距離計算が狂って nearbyToilets が 0 件になるため。
+    const realToilets = result.source === "generated-fallback" ? [] : result.toilets;
+    setLocation(nextLocation);
+    setToilets(realToilets);
     setDataSource(result.source);
     setFetchDebug(result.debug);
-    cacheToiletSearch(result.toilets, nextLocation, result.source);
+    cacheToiletSearch(realToilets, nextLocation, result.source);
     setShowingCachedResult(false);
     setStatus("granted");
     if (options.label !== undefined) setSearchLabel(options.label);
@@ -157,6 +160,27 @@ export default function HomePage() {
   );
   const excludedOverLimitCount = distanceSorted.length - nearbyToilets.length;
   const filteredToilets = useMemo(() => applyFilters(nearbyToilets, filters), [nearbyToilets, filters]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    if (status !== "granted") return;
+    if (filteredToilets.length > 0) return;
+    const afterMultipurpose = nearbyToilets.filter((t) => !filters.includes("multipurpose") || t.amenities.multipurpose);
+    const afterOpen24h = afterMultipurpose.filter((t) => !filters.includes("open24h") || t.amenities.open24h);
+    const afterRating4 = afterOpen24h.filter((t) => !filters.includes("rating4") || (t.reviewRating ?? t.rating) >= 4);
+    const afterClean = afterRating4.filter((t) => !filters.includes("clean") || (t.cleanlinessAverage ?? t.rating) >= 4.2);
+    console.log("[home] 0件デバッグ", {
+      currentLocation: location,
+      rawFetchedCount: toilets.length,
+      afterDistanceFilter: nearbyToilets.length,
+      afterMultipurpose: afterMultipurpose.length,
+      afterOpen24h: afterOpen24h.length,
+      afterRating4: afterRating4.length,
+      afterClean: afterClean.length,
+      finalDisplayed: filteredToilets.length,
+      activeFilters: filters,
+    });
+  }, [status, filteredToilets, nearbyToilets, toilets, location, filters]);
   const nearest = filteredToilets[0];
   const closestDistance = nearbyToilets[0]?.distanceMeters;
   const sourceMessage =
@@ -323,7 +347,15 @@ export default function HomePage() {
               <EmptyState
                 icon={MapPin}
                 title="近くの実在トイレが見つかりませんでした"
-                description="地図を少し移動して再検索するか、駅名・地名で検索してください。"
+                description="地図を少し移動するか、駅名・地名で検索してください。"
+                action={
+                  <Link href="/map">
+                    <Button variant="secondary">
+                      <Map size={16} />
+                      マップで探す
+                    </Button>
+                  </Link>
+                }
               />
             ) : filteredToilets.length > 0 ? (
               <div className="space-y-3">
@@ -334,8 +366,19 @@ export default function HomePage() {
             ) : (
               <EmptyState
                 icon={Search}
-                title="条件に合うトイレがありません"
-                description="フィルターを減らすと、近くの候補をもう少し広く探せます。"
+                title="条件に合うトイレが見つかりませんでした"
+                description="フィルターをゆるめるか、検索範囲を広げてください。"
+                action={
+                  <div className="flex flex-col gap-2">
+                    <Button onClick={() => setFilters(["within1500m"])}>条件をリセット</Button>
+                    <Link href="/map">
+                      <Button variant="secondary" className="w-full">
+                        <Map size={16} />
+                        マップで探す
+                      </Button>
+                    </Link>
+                  </div>
+                }
               />
             )}
           </section>
