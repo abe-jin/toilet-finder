@@ -117,10 +117,84 @@ Google Play Console の「データの安全性」セクションへの回答で
 
 ---
 
+## AAB（Android App Bundle）生成手順
+
+### 前提：keystore と keystore.properties は Git 管理しない
+
+- `android/app/release.keystore` → `.gitignore` 済み、コミット禁止
+- `android/keystore.properties` → `.gitignore` 済み、コミット禁止
+- サンプルファイル `android/keystore.properties.example` はコミット可
+
+### Step 1: upload key（release.keystore）を作成する（初回のみ）
+
+```powershell
+keytool -genkey -v `
+  -keystore android/app/release.keystore `
+  -alias toinavi `
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+> **重要**: 生成したパスワードと keystore ファイルを安全な場所（クラウドストレージ等）にバックアップしてください。  
+> 紛失するとアプリの更新ができなくなります。
+
+### Step 2: keystore.properties を作成する（初回のみ）
+
+```powershell
+Copy-Item android/keystore.properties.example android/keystore.properties
+```
+
+`android/keystore.properties` を開き、実際のパスワード・エイリアスを入力してください：
+
+```properties
+storeFile=app/release.keystore
+storePassword=実際のパスワード
+keyAlias=toinavi
+keyPassword=実際のパスワード
+```
+
+### Step 3: AAB を生成する
+
+```powershell
+# Windows PowerShell
+cd android
+.\gradlew.bat bundleRelease
+```
+
+```bash
+# macOS / Linux / Git Bash
+cd android
+./gradlew bundleRelease
+```
+
+生成先：
+```
+android/app/build/outputs/bundle/release/app-release.aab
+```
+
+### Step 4: Google Play Console にアップロードする
+
+1. Google Play Console → アプリ → リリース → 内部テスト → 新しいリリースを作成
+2. `app-release.aab` をアップロード
+3. Play App Signing が自動的に有効になる（初回のみ）
+
+### Play App Signing について
+
+| 用語 | 説明 |
+|------|------|
+| upload key | 自分で作成した keystore（`release.keystore`）で署名する鍵 |
+| app signing key | Google Play が管理・配布に使う鍵（自動管理） |
+
+初回 AAB 提出時に Play App Signing に自動登録されます。  
+upload key を紛失しても、Play Console の申請で継続可能です。
+
+---
+
 ## 次のステップ
 
-1. Android Studio でリリースビルド（AAB）を生成する
-2. Google Play Console でアプリを登録する
-3. 内部テストトラックに AAB をアップロードする
-4. クローズドテスト（12人以上 × 14日間）を実施する
-5. 本番公開申請を行う
+1. `keytool` で `release.keystore` を生成する（上記 Step 1）
+2. `keystore.properties` を作成する（上記 Step 2）
+3. `.\gradlew.bat bundleRelease` で AAB を生成する（上記 Step 3）
+4. Google Play Console でアプリを登録する
+5. 内部テストトラックに AAB をアップロードする
+6. クローズドテスト（12人以上 × 14日間）を実施する
+7. 本番公開申請を行う

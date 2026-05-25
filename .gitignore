@@ -33,3 +33,10 @@ Thumbs.db
 
 # @capacitor/assets generated PWA icons (wrong location, not served by Next.js)
 /icons/
+
+# Android release signing — never commit keystore or passwords
+*.keystore
+*.jks
+android/keystore.properties
+android/app/release.keystore
+android/app/*.jks
