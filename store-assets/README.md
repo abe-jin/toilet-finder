@@ -15,6 +15,18 @@ Google Play Console → アプリのページ → メインのストアの掲載
 
 ---
 
+## 撮影済みスクリーンショット
+
+| ファイル | 画面 | サイズ | 容量 |
+|----------|------|--------|------|
+| `screenshots/home.png` | ホーム画面 | 1080×2400 | 238KB |
+| `screenshots/map.png` | マップ画面 | 1080×2400 | 2176KB |
+| `screenshots/detail.png` | 詳細画面 | 1080×2400 | 209KB |
+| `screenshots/favorites.png` | お気に入り画面 | 1080×2400 | 235KB |
+| `screenshots/reviews.png` | レビュー画面 | 1080×2400 | 181KB |
+
+---
+
 ## スクリーンショット撮影手順（Android Emulator）
 
 ### 事前準備
