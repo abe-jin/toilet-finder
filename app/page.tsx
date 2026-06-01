@@ -79,7 +79,7 @@ export default function HomePage() {
     // location と toilets を同じ React レンダーサイクルで更新する。
     // setLocation を fetch 前に呼ぶと「location=新座標・toilets=旧キャッシュ」の
     // 中間状態が生まれ、距離計算が狂って nearbyToilets が 0 件になるため。
-    const realToilets = result.source === "generated-fallback" ? [] : result.toilets;
+    const realToilets = result.toilets;
     setLocation(nextLocation);
     setToilets(realToilets);
     setDataSource(result.source);

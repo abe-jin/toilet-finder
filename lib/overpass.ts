@@ -320,8 +320,6 @@ export function generateNearbyFallbackToilets(location: Coordinates): Toilet[] {
   });
 }
 
-const DEV_SAMPLES_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SAMPLE_TOILETS === "true";
-
 export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletFetchResult> {
   const startedAt = Date.now();
   const query = buildOverpassQuery(location, OVERPASS_SEARCH_RADIUS_METERS);
@@ -331,11 +329,31 @@ export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletF
     emptyRadii: []
   };
 
+  // サーバーサイドプロキシ経由を先に試す（CORS・rate limit回避）
+  try {
+    const proxyUrl = `/api/nearby-toilets?lat=${location.lat}&lng=${location.lng}`;
+    const proxyRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(16_000) });
+    if (proxyRes.ok) {
+      const data = await proxyRes.json() as { elements?: OverpassElement[] };
+      const rawElements = data.elements ?? [];
+      const toilets: Toilet[] = [];
+      for (const el of rawElements) {
+        const mapped = mapOverpassToToilet(el);
+        if (mapped) toilets.push(mapped);
+      }
+      if (toilets.length > 0) {
+        return { toilets, source: "overpass", debug };
+      }
+    }
+  } catch {
+    // プロキシ失敗時は直接アクセスにフォールバック
+  }
+
   for (const endpoint of OVERPASS_ENDPOINTS) {
     const elapsedMs = Date.now() - startedAt;
     if (elapsedMs >= OVERPASS_TOTAL_TIMEOUT_MS) {
       debug.fallbackReason = "Overpass API timed out before finding usable toilet candidates within 1500m.";
-      return { toilets: DEV_SAMPLES_ENABLED ? generateNearbyFallbackToilets(location) : [], source: "generated-fallback", debug };
+      return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback", debug };
     }
 
     const controller = new AbortController();
@@ -401,5 +419,5 @@ export async function fetchNearbyToilets(location: Coordinates): Promise<ToiletF
   }
 
   debug.fallbackReason = "Overpass API returned no usable toilet candidates within 1500m.";
-  return { toilets: DEV_SAMPLES_ENABLED ? generateNearbyFallbackToilets(location) : [], source: "generated-fallback", debug };
+  return { toilets: generateNearbyFallbackToilets(location), source: "generated-fallback", debug };
 }
